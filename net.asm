@@ -33,6 +33,7 @@
     tempNetPayInt   dw 0
     netPayDec	    db 2 dup(0)
     netPayInt	    db 4 dup(0)
+    realDec	    db 2 dup(0)
 
     ; Constants
     YES             equ 'y'
@@ -78,45 +79,6 @@ inputDeduct:
     mov temp2,0h
     jmp inputAllow
 
-yesNo1:
-    cmp al, YES
-    je check1
-    cmp al, NO
-    je calcInt
-    jmp errYesNo
-    ret
-
-yesNo2:
-    cmp al, YES
-    je check1
-    cmp al, NO
-    je yesNoAmount
-    jmp errYesNo
-    ret
-
-check1:
-    mov al,count
-    cmp al,1
-    je inputDeduct
-    cmp al,2
-    je inputAllow
-    cmp al,3
-    je inputDeduct
-    cmp al,4
-        je calcInt
-        ret
-
-check2:
-    mov al,count
-    cmp al,3
-    je yesNoAmount
-    cmp al,4
-        je confirmGua
-
-errYesNo:
-    call printErrorMessage
-    call check2
-
 inputAllow:
     ; Ask for allowance amount
     mov ah, 09h
@@ -145,11 +107,6 @@ confirmGua:
 
     call confirmMoney
 
-exit:
-    ; Exit program
-    mov ah, 4ch
-    int 21h
-
 calcInt:
     call netpay		;display net pay
     mov ax,3000		;Gross Pay
@@ -165,21 +122,30 @@ calcInt:
 
 calcDec:
     mov ax,0
-    mov al,25	;decimal bonus
-    mov bl,tempDeductDec
-    mov dl,tempAllowDec
+    mov al,90	;decimal bonus
+    mov bl,tempDeductDec	;52
+    mov dl,tempAllowDec		;96
     add al,dl
-    sub al,bl
+    sub al,bl	;total=134 86h
+    mov bl,100
+    div bl
+    mov netPayDec[0],al		;01
+    mov netPayDec[1],ah		;34
+    mov ax,0
+    mov al,netPayDec[1]
     mov bl,10
     div bl
-    mov netPayDec[0],al
-    mov netPayDec[1],ah
+    mov realDec[0],al
+    mov realDec[1],ah
     call convertIntDecimal
     ret
 
 convertIntDecimal:
     mov ax,0
     mov dx,0
+    mov bx,0
+    mov bl,netPayDec[0]
+    add tempNetPayInt,bx
     mov ax,tempNetPayInt  
     mov bx,100
     div bx
@@ -189,7 +155,7 @@ convertIntDecimal:
     mov netPayInt[1],ah
     mov netPayInt[2],dl
     mov netPayInt[3],dh
-    
+
     ;DISPLAY NUMBER 1 DIGIT
     MOV AH,02H
     MOV DL,netPayInt[0]
@@ -221,7 +187,11 @@ convertIntDecimal:
     INT 21H
     call convertDecDecimal
     ret
-
+jumper1: jmp calcInt
+jumper2: jmp yesNoAmount
+jumper3: jmp inputDeduct
+jumper4: jmp inputAllow
+jumper5: jmp confirmGua
 convertDecDecimal:
     mov ah,02h
     mov dl,'.'
@@ -229,19 +199,65 @@ convertDecDecimal:
 
     ;DISPLAY NUMBER 1 DIGIT
     MOV AH,02H
-    MOV DL,netPayDec[0]
+    MOV DL,realDec[0]
     ADD DL,30H
     INT 21H
 
     ;DISPLAY NUMBER 2 DIGIT
     MOV AH,02H
-    MOV DL,netPayDec[1]
+    MOV DL,realDec[1]
     ADD DL,30H
     INT 21H
 
     jmp exit
 
+exit:
+    mov ah,09h
+    lea dx,exitNetPay 
+    int 21h
+
+    ; Exit program
+    mov ah, 4ch
+    int 21h
 main endp
+yesNo1:
+    cmp al, YES
+    je check1
+    cmp al, NO
+    je jumper1
+    jmp errYesNo
+    ret
+
+yesNo2:
+    cmp al, YES
+    je check1
+    cmp al, NO
+    je jumper2
+    jmp errYesNo
+    ret
+
+check1:
+    mov al,count
+    cmp al,1
+    je jumper3
+    cmp al,2
+    je jumper4
+    cmp al,3
+    je jumper3
+    cmp al,4
+    je jumper1
+    ret
+
+check2:
+    mov al,count
+    cmp al,3
+    je jumper2
+    cmp al,4
+    je jumper5
+
+errYesNo:
+    call printErrorMessage
+    call check2
 displayWelcomeNet:
     mov ah, 09h
     lea dx, displayNetPay
@@ -323,6 +339,8 @@ readDone:
     ret
 
 errMsg:
+    mov temp1,0h
+    mov temp2,0h
     ; Display error message
     mov ah, 09h
     lea dx, inputErr
@@ -331,6 +349,8 @@ errMsg:
     call check1
 
 errorEnter:
+    mov temp1,0h
+    mov temp2,0h
     mov ah, 09h
     lea dx, enterErr
     int 21h

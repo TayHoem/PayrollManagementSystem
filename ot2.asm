@@ -17,6 +17,8 @@
     correct_Days 	db 13, 10, "Correct day input? (y/n): $"
     display_OTHours 	db 13, 10, "Total Overtime Hours: $"
     error          	db 13,10,"Please enter y or n only$"
+    hours		db " Hours$"
+    wantDays		db " Days$"
     
     newline 		db 13, 10, '$'
 
@@ -145,6 +147,7 @@ getUserInput:
     sub digit[si], 30h
     inc si
     loop getUserInput
+    call displayDays
 
     ret
 
@@ -191,6 +194,20 @@ convertDecimal:
     MOV DL,total_overtime [3]
     ADD DL,30H
     INT 21H
+
+    call displayHours
+    ret
+
+displayDays:
+    mov ah,09h
+    lea dx,wantDays
+    int 21h
+    ret
+
+displayHours:
+    mov ah,09h
+    lea dx,hours
+    int 21h
     ret
 
 displayWelcome:
