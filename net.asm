@@ -109,12 +109,12 @@ confirmGua:
 
 calcInt:
     call netpay		;display net pay
-    mov ax,3000		;Gross Pay
+    mov ax,4680		;Gross Pay
     mov bx,tempAllowInt  ;Allowance
     add ax,bx
     mov bx,tempDeductInt ;Deduction
     sub ax,bx
-    mov bx,800		;Bonus
+    mov bx,840		;Bonus
     add ax,bx
     mov tempNetPayInt,ax
     call calcDec
@@ -122,7 +122,7 @@ calcInt:
 
 calcDec:
     mov ax,0
-    mov al,90	;decimal bonus
+    mov al,88	;decimal bonus
     mov bl,tempDeductDec	;52
     mov dl,tempAllowDec		;96
     add al,dl
