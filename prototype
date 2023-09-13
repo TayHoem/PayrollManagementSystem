@@ -380,7 +380,7 @@ promptId:
 	int 21h
 	
 	MOV CX,6  
-    MOV SI,0
+    	MOV SI,0
 	
 keyInId:
     	MOV AH,01H
@@ -810,10 +810,10 @@ GROSSPAYCAL:
 	INT 21H
     	call returnOrNot
 exitGross:
+        MOV AH,09H
 	LEA DX,exitGP
 	INT 21H
 	JMP BONUS
-JL1: jmp Login
 
 BONUS:
     	mov loopCount[4],5
@@ -836,7 +836,7 @@ BNCONFIRM:
 	CMP AL,NO
 	JE  BNCONFIRM
 	JMP ERRBN
-	
+
 GETBONUS:	
 	;clear screen
 	CALL NEWLINE	
@@ -1020,8 +1020,18 @@ loop loopWantedPlaces
     sub calculate,1
     jmp errMsg1		
     ret	
-
+JL1: jmp Login
+JL2: jmp STAFFINFORM
+JL3: jmp OT
+JL6: jmp netPay
+JL4: jmp grossPay
+JL5: jmp bonus
+jump1: jmp exitProgram
+jump2: jmp exitGross
+jump3: jmp exitBonus
+jump4: jmp goOut
 returnOrNot:
+    MOV AH,09H
     lea dx,askReturn
     int 21h
 
@@ -1053,13 +1063,13 @@ GoesWantedPlaces:
 compareNo:
     ;not return compare calculate
     cmp calculate,1
-    je exitProgram
+    je jump1
     cmp calculate,2
-    je exitGross
+    je jump2
     cmp calculate,3
-    je exitBonus
+    je jump3
     cmp calculate,4
-    je goOut
+    je jump4
 
 returnWhere:
     cmp calculate,1
@@ -1122,10 +1132,6 @@ errMsg1:
     lea dx,error
     int 21h
     jmp readReturnSelect
-
-JL2: jmp STAFFINFORM
-JL3: jmp OT
-JL5: jmp bonus
 
 NETPAYSTART:
     	mov calculate,4
@@ -1317,8 +1323,6 @@ exit:
     	;Exit
      	mov ah,4ch
 	int 21h
-JL6: jmp netPay
-JL4: jmp grossPay
 
 main endp
 ;NET PAY
