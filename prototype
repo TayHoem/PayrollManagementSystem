@@ -206,7 +206,7 @@
     	NO 		equ 'n'
 
 	;Return
-    returnList1     	db 13,10,"		    *****************************"
+    	returnList1     db 13,10,"		    *****************************"
                     	db 13,10,"		    ||       RETURN LIST       ||"
                     	db 13,10,"		    *****************************$"
     otReturn        	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||", "$"
@@ -214,11 +214,9 @@
     bonusReturn     db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||", "$"
     netPayReturn    db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||",13,10,"		    ||5.Bonus Module           ||","$"
     returnList3     	db 13,10,"		    *****************************$"
-    newline         	db 13, 10, '$'
     returnSelect 	db 13,10,"Please Select One Of It To Return: $"
     askReturn   	db 13,10,"Do you want to return?(y=yes/n=no): $"
     error 		db 13,10,"Please choose number in the list only!!!$"
-    errYesNo		db 13,10,"Please enter y or n only!!!$"
     calculate   	dw 0
     loopCount		db 5 dup(0)
     select 		db ?
@@ -614,7 +612,7 @@ netDays:
 
     	;convert to decimal
     	call convertDecimal
-    	jmp exitProgram
+    	call returnOrNot
 
 errYesNo_OT:
     	call printErrorMessage
@@ -810,12 +808,10 @@ GROSSPAYCAL:
 	MOV AH,09H
 	LEA DX,DECIMAL
 	INT 21H
+    	call returnOrNot
+exitGP:
 	LEA DX,exitGP
 	INT 21H
-
-	;MOV AH,09H
-	;LEA DX,EXITGP
-	;INT 21H
 	JMP BONUS
 
 BONUS:
@@ -998,7 +994,8 @@ BONUSCAL:
 	MOV DL,DECIMAL1
 	ADD DL,30H
 	INT 21H
-
+	call returnOrNot
+exitBonus:
 	CALL NEWLINE
 	MOV AH,09H
 	LEA DX,EXITBN
@@ -1185,7 +1182,8 @@ convertDecDecimal:
 	MOV DL,DECIMAL1
 	ADD DL,30H
 	INT 21H
-
+	call returnOrNot
+goOut:
      	MOV AH,09H
      	LEA DX,exitNetPay 
      	INT 21H
@@ -1343,6 +1341,125 @@ netpay:
     	lea dx,displayTotalNet
     	int 21h
     	ret
+
+choose:		;choose return to where
+    add calculate,1	;if calc=1+1=2
+    mov dx,calculate
+    mov si,0
+    mov cx,dx		;loop 2 times
+loopWantedPlaces:
+    mov ah,0h
+    mov al,loopCount[si]	;loopCount[0]=1
+    mov bl,select		;select=2
+    cmp al,bl
+    je GoesWantedPlaces
+    inc si		;loopCount[1]=2
+loop loopWantedPlaces
+    sub calculate,1
+    jmp errMsg1		
+    ret	
+
+GoesWantedPlaces:
+    cmp select,1
+    je JL1
+    cmp select,2
+    je JL2
+    cmp select,3
+    je JL3
+    cmp select,4
+    je JL4
+    cmp select,5
+    je JL5
+    jmp errMsg1	
+
+compareNo:
+    ;not return compare calculate
+    cmp calculate,1
+    je exitProgram
+    cmp calculate,2
+    je exitGP
+    cmp calculate,3
+    je exitBonus
+    cmp calculate,4
+    je goOut
+
+returnOrNot:
+    lea dx,askReturn
+    int 21h
+
+    mov ah,01h
+    int 21h
+    cmp al,'y'
+    je returnWhere
+    cmp al,'n'
+    je compareNo
+    mov ah,09h
+    lea dx,errYesNo
+    int 21h
+    call NewLine
+    jmp returnOrNot
+    
+returnWhere:
+    cmp calculate,1
+    je determine1
+    cmp calculate,2
+    je determine2
+    cmp calculate,3
+    je determine3
+    cmp calculate,4
+    je determine4
+
+determine1:
+    lea si,otReturn 
+    jmp loopReturn
+
+determine2:
+    lea si,grossPayReturn
+    jmp loopReturn
+
+determine3:
+    lea si,bonusReturn
+    jmp loopReturn
+
+determine4:
+    lea si,netPayReturn 
+    jmp loopReturn
+
+loopReturn:
+    mov ah,09h
+    lea dx,returnList1
+    int 21h
+    mov cx,1
+returnBah:
+    mov ah,09h
+    lea dx,[si]
+    int 21h
+    inc si
+loop returnBah
+    mov ah,09h
+    lea dx,returnList3
+    int 21h
+    jmp readReturnSelect
+    
+readReturnSelect:
+    mov ah,09h
+    lea dx,returnSelect
+    int 21h
+    jmp selectWhat
+
+selectWhat:
+    mov ah,01h
+    int 21h
+    sub al,30h
+    mov select,al
+    call choose
+    ret
+   
+errMsg1:
+    mov ah,09h
+    lea dx,error
+    int 21h
+    jmp readReturnSelect
 
 BORDER:
 	MOV AH,09H
