@@ -91,7 +91,7 @@
 	;OVERTIME
 	;OT UI
 	displayOvertime db 13, 10,"                          ^^************************^^"
-    			db 13, 10,"                          ::     OVERTIME Module    ::"
+    			db 13, 10,"                          ::    OVERTIME Module     ::"
     			db 13, 10,"                          ^^************************^^$"
    
 	exitOvertime 	db 13, 10,"                          ^^************************^^"
@@ -161,7 +161,7 @@
 	BONUS_RATEDEC 	DB ?
 	WRBONUSRATE 	DB 10,13,"Wrong Rate!!! Please key in rate in (00-20)% only!$"
 	CONFIRM_BNRATE 	DB 10,13,"Confirm BONUS Rate(y/n):$"
-	DISBN 		DB 10,13,"Total BONUS = RM $"
+	DISBN 		DB 10,13,"BONUS  : RM $"
 	DECIMAL1 	DB 0
 	;BONUS
 	TOTALBN 	DW ?
@@ -246,7 +246,7 @@ accept_Pass:
     	int 21h
 
     	inc bx
-loop accept_Pass
+        loop accept_Pass
 
     	; Compare HR ID
     	lea si, actID
@@ -285,7 +285,17 @@ comparePassword2:
 	je loginSuccessful
 loop comparePassword1
 	
-loginSuccessful:
+loginSuccessful:   
+	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
+        MOV AH,00
+        MOV AL,02H
+        INT 10H
+	
+        MOV ax, 0600h
+        MOV BH, 1FH
+        MOV cx, 0000h
+        MOV dx, 184fh    
+        INT 10H
     	; Code to execute when login is successful
     	mov ah, 09h
     	lea dx, success
@@ -352,7 +362,7 @@ promptId:
 	int 21h
 	
 	MOV CX,6  
-    	MOV SI,0
+    MOV SI,0
 	
 keyInId:
     	MOV AH,01H
@@ -1143,12 +1153,16 @@ convertDecDecimal:
      	MOV DL,realDec[1]
      	ADD DL,30H
      	INT 21H
+	
+	MOV AH,02H
+	MOV DL,DECIMAL1
+	ADD DL,30H
+	INT 21H
 
-     	mov ah,09h
-     	lea dx,exitNetPay 
-     	int 21h
-     	jmp exit
-
+     	MOV AH,09H
+     	LEA DX,exitNetPay 
+     	INT 21H
+     	JMP EXIT
 
 exit:	 
 	CALL NEWLINE
