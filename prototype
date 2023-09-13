@@ -98,7 +98,6 @@
     			db 13, 10,"                          ::   Exit OVERTIME Module ::"
     			db 13, 10,"                          ^^************************^^$"
     
-    	comfirm 	db 13, 10, "Staff Overtime?(y=Yes/n=No): $"
     	promptWorkDays 	db 13, 10, "Total Number of Working Days(0-29): $"
     	errDays 	db 13, 10, "Digit Acceptable Range(0-9) only...Please insert a new day!!! $"
     	errorDays 	db 13, 10, "Days cannot above 29 days...Please insert a new day!!! $"
@@ -540,20 +539,7 @@ OT:
 	INT 21H
 	call NEWLINE
 	call displayWelcome
-    	jmp otConfirmation
-
-otConfirmation:
-    	mov ah, 9h
-    	lea dx, comfirm
-    	int 21h
-
-    	mov ah, 01h
-    	int 21h
-    	cmp al, YES
-    	je getWorkDays
-    	cmp al, NO
-    	jne errYesNo_OT
-    	jmp KeyInTotalWH
+    	jmp  getWorkDays
 
 getWorkDays:
     	call NEWLINE
