@@ -573,7 +573,7 @@ confirmDay:
    	jne errYesNo_confirm
     	dec si
     	mov workDays, 0
-    	jmp otConfirmation
+    	jmp getWorkDays
 
 displayTotalOT:
     	call NEWLINE
@@ -599,10 +599,6 @@ netDays:
     	;convert to decimal
     	call convertDecimal
     	call returnOrNot
-
-errYesNo_OT:
-    	call printErrorMessage
-   	 jmp otConfirmation
 
 errYesNo_confirm:
    	 call printErrorMessage
