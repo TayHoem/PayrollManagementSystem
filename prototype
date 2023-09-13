@@ -813,7 +813,7 @@ exitGP:
 	LEA DX,exitGP
 	INT 21H
 	JMP BONUS
-
+JL1: jmp Login
 BONUS:
     	mov loopCount[4],5
     	mov calculate,3
@@ -1001,7 +1001,9 @@ exitBonus:
 	LEA DX,EXITBN
 	INT 21H
 	JMP NETPAYSTART
-
+JL2: jmp staff
+JL3: jmp ot
+JL5: jmp bonus
 NETPAYSTART:
     	mov calculate,4
 	CALL NEWLINE
@@ -1194,7 +1196,8 @@ exit:
     	;Exit
      	mov ah,4ch
 	int 21h
-
+JL6: jmp netPay
+JL4: jmp grossPay
 main endp
 
 ;NET PAY
