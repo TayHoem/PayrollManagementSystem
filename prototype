@@ -387,9 +387,6 @@ keyInId:
     	MOV STAFFID[SI],AL
     	INC SI
     	LOOP keyInId
-    
-   	;new line
-	CALL NEWLINE
 
 	MOV SI,0
 	LEA si,buffer
@@ -431,7 +428,6 @@ ErrorId:
        
 displayInform1:
 	CALL BORDER
-	CALL NEWLINE
 displayInform2:
     	mov bl,[si] 
 	cmp bl,','
@@ -457,7 +453,6 @@ BACKSTAFFID:
 
 confirmStaffId:
 	CALL BORDER
-	CALL NEWLINE
 
 	MOV AH,09H
 	LEA DX,confirmStaff
