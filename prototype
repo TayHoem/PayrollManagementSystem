@@ -1001,8 +1001,8 @@ exitBonus:
 	LEA DX,EXITBN
 	INT 21H
 	JMP NETPAYSTART
-JL2: jmp staff
-JL3: jmp ot
+JL2: jmp STAFFINFORM
+JL3: jmp OT
 JL5: jmp bonus
 NETPAYSTART:
     	mov calculate,4
