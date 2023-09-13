@@ -1003,6 +1003,7 @@ exitBonus:
 	LEA DX,EXITBN
 	INT 21H
 	JMP NETPAYSTART
+
 choose:		;choose return to where
     add calculate,1	;if calc=1+1=2
     mov dx,calculate
@@ -1035,7 +1036,31 @@ returnOrNot:
     int 21h
     call NewLine
     jmp returnOrNot
-    
+
+GoesWantedPlaces:
+    cmp select,1
+    je JL1
+    cmp select,2
+    je JL2
+    cmp select,3
+    je JL3
+    cmp select,4
+    je JL4
+    cmp select,5
+    je JL5
+    jmp errMsg	
+
+compareNo:
+    ;not return compare calculate
+    cmp calculate,1
+    je exitProgram
+    cmp calculate,2
+    je exitGross
+    cmp calculate,3
+    je exitBonus
+    cmp calculate,4
+    je goOut
+
 returnWhere:
     cmp calculate,1
     je determine1
@@ -1097,6 +1122,7 @@ errMsg1:
     lea dx,error
     int 21h
     jmp readReturnSelect
+
 JL2: jmp STAFFINFORM
 JL3: jmp OT
 JL5: jmp bonus
