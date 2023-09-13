@@ -809,7 +809,7 @@ GROSSPAYCAL:
 	LEA DX,DECIMAL
 	INT 21H
     	call returnOrNot
-exitGP:
+exitGross:
 	LEA DX,exitGP
 	INT 21H
 	JMP BONUS
@@ -1380,7 +1380,7 @@ compareNo:
     cmp calculate,1
     je exitProgram
     cmp calculate,2
-    je exitGP
+    je exitGross
     cmp calculate,3
     je exitBonus
     cmp calculate,4
