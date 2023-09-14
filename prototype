@@ -81,7 +81,9 @@
 	;confirm message
 	confirmStaff 	db 10,13,"Sure this staff (YES=y/No=n)?$"
 	confirmTotalWH 	db 10,13,"Confirm Total Working Hours (YES=y/No=n)? $"
+	goBackLogIn	db 10,13,"Start Calculate Staff Payrolls? (YES=y/No=n) : $"
 	confirmSI 	db ?
+	confirmGoBack	db ?
 
 	;OVERTIME
 	displayOvertime db 13, 10,"                          ^^************************^^"	;OT UI
@@ -167,7 +169,9 @@
     	inputErr        db 13,10, "<<Only Accept Integer Value Amount (EXP FORMAT:0123.45)..Re-enter again>>$"
 	enterErr	    db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
     	confirmAmount   db 13,10, "Confirm Deduction/Allowance amount? (y=Yes/n=No): $"
+	nextStaff	db 13,10, "Calculate Payrolls For Next Staff? (y=Yes/n=No): $"
     	displayTotalNet db 13,10,"Total NET PAY = RM $"
+	yesNoNextStaff	db ?
 
 	count           db 0
     	temp1	    	dw 0
@@ -285,7 +289,7 @@ comparePassword2:
 	cmp al,0
 	je loginSuccessful
 loop comparePassword1
-	
+
 loginSuccessful:   
         CALL changeBLUE
     	mov ah, 09h		;Code to execute when login is successful
@@ -446,7 +450,7 @@ KeyInTotalWH:
 	CMP TOTALWH,300
 	JG  XRANGEWH
 	JMP displayWH
-
+JB1: jmp LOGINBACK
 XRANGEWH:
 	MOV AH,09H		;DISPALY ERROR MESSAGES when total working hours out of range
 	LEA DX,WRTOTALWH
@@ -472,11 +476,29 @@ CONFIRMWH:
 	INT 21H
 	
 	CMP AL,YES
-   	JE  goOT		;YES - go OT
+   	JE  backToLogin		;YES - go ask return login or not
     	CMP AL,NO
    	JE  KeyInTotalWH	;IF NO - back to key in staff id
    	JMP ERRCONFIRMWH
 
+backToLogin:
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,goBackLogIn
+	int 21h
+
+	MOV AH,01H
+	MOV DL,confirmGoBack
+	INT 21H
+	
+	CMP AL,YES
+   	JE  goOT		;YES - go OT
+    	CMP AL,NO
+   	JE  JB1			;IF NO - back to Log In
+   	JMP LOGINERR
+LOGINERR:
+	call printErrorMessage
+	JMP backToLogin
 ERRCONFIRMWH:
 	call printErrorMessage
 	JMP CONFIRMWH
@@ -538,9 +560,14 @@ displayTotalOT:
     	mov dx,TOTALWH	;TOTALWH = 300
     	sub dx, ax
 	cmp dh,255
-    	jne netDays
+    	je toZero
+	cmp dh,254
+	je toZero
+	jmp netDays
+toZero:
    	mov days,0h
     	call convertDecimal
+    	call returnOrNot
     	jmp exitOT
 netDays:
     	mov days,dx
@@ -872,7 +899,7 @@ yesNoAmount:
     	mov ah, 01h		; Read user input
    	int 21h
     	call yesNo1
-    jmp inputDeduct
+    	jmp inputDeduct
 inputDeduct:
 	CALL NEWLINE
     	mov ah, 09h		; Ask for deduction amount
@@ -890,7 +917,7 @@ inputDeduct:
     	mov tempDeductDec,bl
     	mov temp1,0h
     	mov temp2,0h
-    jmp inputAllow
+    	jmp inputAllow
 
 inputAllow:
 	CALL NEWLINE
@@ -909,7 +936,7 @@ inputAllow:
     	mov tempAllowDec,bl
     	mov temp1,0h
     	mov temp2,0h
-    jmp confirmGua
+    	jmp confirmGua
 
 confirmGua:
 	CALL NEWLINE
@@ -993,12 +1020,6 @@ convertIntDecimal:
     	call convertDecDecimal
     	ret
 
-jumper1: jmp calcInt
-jumper3: jmp inputDeduct
-jumper4: jmp inputAllow
-jumper5: jmp confirmGua
-jumper2: jmp yesNoAmount
-
 convertDecDecimal:
      	mov ah,02h
      	mov dl,'.'
@@ -1016,11 +1037,19 @@ convertDecDecimal:
 	ADD DL,30H
 	INT 21H
 	call returnOrNot
+continuePayrolls:
+	call calculateNextStaff
 goOut:
      	MOV AH,09H
      	LEA DX,exitNetPay 
      	INT 21H
      	JMP EXIT
+jumper1: jmp calcInt
+jumper3: jmp inputDeduct
+jumper4: jmp inputAllow
+jumper5: jmp confirmGua
+jumper2: jmp yesNoAmount
+JSB1: jmp STAFFBACK
 exit:	 
     	CALL changeMAGENTA
      	mov ah,4ch
@@ -1044,6 +1073,13 @@ yesNo2:
     	jmp err_YesNo
     	ret
 
+yesNo3:
+    	cmp al, YES
+    	je JSB1
+    	cmp al, NO
+    	je check1
+    	jmp err_YesNo
+    	ret
 check1:
     	mov al,count
     	cmp al,1
@@ -1054,6 +1090,8 @@ check1:
     	je jumper3
     	cmp al,4
     	je jumper1
+	cmp al,5
+	je goOut
     	ret
 
 check2:
@@ -1062,7 +1100,9 @@ check2:
     	je jumper2
     	cmp al,4
     	je jumper5
-
+	cmp al,5
+    	je jumper6
+	ret
 err_YesNo:
     	call printErrorMessage
     	call check2
@@ -1101,7 +1141,7 @@ combineInt:
     	jz addDecimal  		; If so, terminate the input
 
     	jmp readDeduct
-
+jumper6: jmp calculateNextStaff
 addDecimal:
     	mov ah, 02h
     	mov dl, '.'
@@ -1160,6 +1200,17 @@ netpay:
     	lea dx,displayTotalNet
     	int 21h
     	ret
+calculateNextStaff:
+	mov count,5
+    	call NewLine
+	mov ah,09h
+	lea dx,nextStaff
+	int 21h
+	mov ah,01h
+	int 21h
+	call yesNo3
+	ret
+
 ;-------------------------------------------------------------------------------
 changeBLUE:
 	MOV AH,00	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
@@ -1235,7 +1286,7 @@ JL6: jmp netPay
 jump1: jmp exitOT
 jump2: jmp exitGross
 jump3: jmp exitBonus
-jump4: jmp goOut
+jump4: jmp continuePayrolls
 returnOrNot:
 	call NEWLINE
     	mov ah,09h
@@ -1370,7 +1421,7 @@ WORKHOURS:
 	SUB AL,30H
 	MOV TOTALWHTEMP[SI],AL
 	INC SI
-   LOOP WORKHOURS
+LOOP WORKHOURS
 
 	;CHANGE INPUT
     	MOV AL,TOTALWHTEMP[0]
