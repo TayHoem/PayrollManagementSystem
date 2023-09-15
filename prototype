@@ -115,13 +115,15 @@
 	exitGP 	        db 13, 10,"                          ^^************************^^"
     	        	db 13, 10,"                          ::      EXIT GROSS PAY    ::"
     	        	db 13, 10,"                          ^^************************^^$"
-	PROMPTHOURRATE  DB 10,13,"Enter Hour Rate RM(00-15):$" 
-	PROMPTOTRATE 	DB 10,13,"Enter OT Rate RM(16-30):$"
+	PROMPTHOURRATE  DB 10,13,"Enter Hour Rate RM(00-15): RM $" 
+	PROMPTOTRATE 	DB 10,13,"Enter OT Rate RM(16-30): RM $"
+	perDays		DB "/hours$"
    	HOURRATE 	DB 2 DUP(0)
 	OTRATE 		DB 2 DUP(0)
 	HOUR_RATES 	DB ?
 	OT_RATES 	DB ?
-	WRGRATE 	DB 10,13,"Wrong Rate!!! Please key-in rate in RM(0-20) only!$"
+	WRGRATE 	DB 10,13,"Wrong Rate!!! Please key-in rate in RM(0-15) only!$"
+	WRGRATE2 	DB 10,13,"Wrong Rate!!! Please key-in rate in RM(0-30) only!$"
 	CONFIRM_RATE 	DB 10,13,"Confirm Hours and OT Rate(y/n)?$"
 	DISGP 		DB 10,13,"GROSS PAY = RM $"
 	DECIMAL 	DB ".000$"
@@ -140,6 +142,7 @@
     	        	db 13, 10,"                          ^^*************************^^$"
 	BONUS_GET 	DB 10,13,"Bonus? (YES=y/NO=n) :$"
 	PROMPTBONUSRATE DB 10,13,"Enter Bonus Rate (00.00-20.00)% :$" 
+	percent 	DB '%'
    	BONUSRATES 	DB 2 DUP(0)
 	RATESPOINT 	DB '.'
 	BONUSRATEDECI 	DB 2 DUP(?)
@@ -164,10 +167,10 @@
                 	db 13, 10,"                          ^^*************************^^$"
 
    	askDeduct       db 13,10, "Staff Contain Any Deduction/Allowance? (y=Yes/n=No): $"
-   	enterDeduct     db 13,10, "-->Deduction Amount (0000.00 < Amount < 9999.99): $"
-    	enterAllow      db 13,10, "-->Allowance Amount (0000.00 < Amount < 9999.99): $"
+   	enterDeduct     db 13,10, "-->Deduction Amount (0000.00 < Amount < 9999.99): RM $"
+    	enterAllow      db 13,10, "-->Allowance Amount (0000.00 < Amount < 9999.99): RM $"
     	inputErr        db 13,10, "<<Only Accept Integer Value Amount (EXP FORMAT:0123.45)..Re-enter again>>$"
-	enterErr	    db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
+	enterErr	db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
     	confirmAmount   db 13,10, "Confirm Deduction/Allowance amount? (y=Yes/n=No): $"
 	nextStaff	db 13,10, "                  Calculate Payrolls For Next Staff? (y=Yes/n=No): $"
     	displayTotalNet db 13,10,"Total NET PAY = RM $"
@@ -184,7 +187,7 @@
     	tempAllowDec    db 0
     	tempNetPayInt   dw 0
     	netPayDec	db 2 dup(0)
-    	netPayInt	db 4 dup(0)
+    	netPayInt	db 5 dup(0)
     	realDec	    	db 2 dup(0)
 
 	ERRYESNO 	DB 10,13,"Please enter y or n only !!!$"
@@ -207,6 +210,7 @@
    	calculate   	dw 0
     	loopCount	db 5 dup(0)
     	select 		db ?
+	count 		db 0
 	ENDPAGE 	DB 13,10,13,10,13,10,13,10, "                        << -- END PAYROLLS SYSTEM ^_^ -->>$"  ;print when end
 .code
 main proc
@@ -227,14 +231,12 @@ LOGIN:
     	int 21h 
 	jmp PROMPTLOGIN
 PROMPTLOGIN:
-    	; Enter HR ID
-    	lea dx, enter1
+    	lea dx, enter1		; Enter HR ID
     	int 21h
 
     	mov ah, 0Ah
     	lea dx, HRID_LABEL   	; Tell INT 21h to store captured string here.
     	int 21h
-
 promptPassword:
     	mov ah,09h		; Enter Password
     	lea dx, enter2
@@ -300,6 +302,7 @@ loginFailed:
     	mov ah, 09h		; Code to execute when login fails
     	lea dx, fail
     	int 21h
+	CALL NEWLINE
     	jmp PROMPTLOGIN
 STAFFBACK: 
 	CALL changeBLUE
@@ -392,7 +395,8 @@ ErrorId:
 	CALL NEWLINE
 	JMP promptId
 
-displayInform1: 
+displayInform1:
+	inc count 
 	CALL changeBLUE
 	CALL BORDER      	;display the staff infor base on staff id
 	CALL printStaffID
@@ -445,6 +449,9 @@ BACKWH:	CALL NEWLINE
 	MOV CX,3
 	MOV SI,0
 	CALL WORKHOURS
+	mov ah,09h
+	lea dx,hours
+	int 21h	
 
 	CMP TOTALWH,0		;check the total work hours is in the rang 0 to 300 hours
 	JL  XRANGEWH
@@ -610,8 +617,8 @@ AGAIN:
 
 	MOV CX,2
 	MOV SI,0
-	CALL HOURR
-
+	CALL HOURR 
+	CALL PERDAY
 	CMP HOUR_RATES,0
 	JL  XRANGE1
 	CMP HOUR_RATES,15
@@ -627,7 +634,7 @@ AGAIN2:
 	MOV SI,0
 	MOV AL,0
 	CALL OTR
-	
+	CALL PERDAY
 	CMP OT_RATES,16
 	JL  XRANGE2
 	CMP OT_RATES,30
@@ -640,7 +647,7 @@ XRANGE1:
 	JMP AGAIN
 XRANGE2:
 	MOV AH,09H		;DISPALY ERROR MESSAGES when ot rate out of range
-	LEA DX,WRGRATE
+	LEA DX,WRGRATE2
 	INT 21H
 	CALL NEWLINE
 	JMP AGAIN2
@@ -763,6 +770,10 @@ GETBONUS:
 	MOV CX,2		;SET LOOP 2 TIMES TO GET BONUS RATE
 	MOV SI,0
 	CALL BONUSL
+	
+	mov ah,02h
+	mov dl,percent
+	int 21h
 
 	CMP BONUS_RATE,0	;CHECK BONUS RATE
 	JL  XBNRANGE
@@ -998,37 +1009,58 @@ convertIntDecimal:
     	mov ax,0
     	mov dx,0
     	mov bx,0
-    	mov bl,netPayDec[0]
-    	add tempNetPayInt,bx	;5633
-    	mov ax,tempNetPayInt  
-    	mov bx,100		;ax=56 dx=33
-    	div bx
+    	mov bl,netPayDec[0]		
+    	add tempNetPayInt,bx	
+    	mov ax,tempNetPayInt  	;ax=15520,3CA0H
+    	mov bx,1000		
+    	div bx		;15520/1000: ax=15,dx=520
     	mov bl,10
-    	div bl
-    	mov netPayInt[0],al
-    	mov netPayInt[1],ah
-    	mov netPayInt[2],dl
-    	mov netPayInt[3],dh
+    	div bl		;15/10: al=01,ah=05
+    	mov netPayInt[0],al		;al=01
+    	mov netPayInt[1],ah		;ah=05
+    	mov ax,dx		;ax=520
+    	mov dx,0
+    	mov bx,100
+    	div bx		;ax=5,dx=20
+    	mov netPayInt[2],dl		;ah=20
+    	mov netPayInt[3],dh		
+    	mov netPayInt[4],al		;al=05
 
+    	;DISPLAY NUMBER 1 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[0]	;DISPLAY NUMBER 1 DIGIT
+    	MOV DL,netPayInt[0]		;1
     	ADD DL,30H
     	INT 21H
-    	MOV DL,netPayInt[1]	;DISPLAY NUMBER 2 DIGIT
+
+    	;DISPLAY NUMBER 2 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[1]		;5
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 3 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[4]		;6
     	ADD DL,30H
     	INT 21H
 
     	MOV AX,0
-    	MOV AL,netPayInt[2]	
-    	DIV BL    		
-    	MOV netPayInt[2],AL	;03
-    	MOV netPayInt[3],AH	;03
-
+    	MOV AL,netPayInt[2]		;20
+    	mov bh,0
+    	mov bl,10
+    	DIV BL    			;20/10,al=2,ah=0
+    	MOV netPayInt[2],AL		;2
+    	MOV netPayInt[3],AH		;0
+	
+    	;DISPLAY NUMBER 4 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[2]	;DISPLAY NUMBER 3 DIGIT
+    	MOV DL,netPayInt[2]		;2
     	ADD DL,30H
     	INT 21H
-    	MOV DL,netPayInt[3]	;DISPLAY NUMBER 4 DIGIT
+
+    	;DISPLAY NUMBER 5 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[3]		;0
     	ADD DL,30H
     	INT 21H
     	call convertDecDecimal
@@ -1479,6 +1511,9 @@ DISPLAYTOTALWH:
 	ADD DL,30H
 	INT 21H
 
+	mov ah,09h
+	lea dx,hours
+	int 21h	
 	RET
 ;OT-------------------------------------------------------------------------------
 getUserInput:
@@ -1602,6 +1637,11 @@ OTR:
     	ADD AL, OTRATE[1]
     	MOV OT_RATES, AL
 	RET
+PERDAY:
+	MOV AH,09H
+	LEA DX,perDays
+	int 21h
+	ret
 ;BONUS-------------------------------------------------------------------------------
 BONUSL:
 	MOV AH,01H		;GET INTEGER PERCENTAGE OF THE BONUS RATE
