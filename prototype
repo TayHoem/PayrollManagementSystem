@@ -15,15 +15,15 @@
 
 	;LOGIN UI
 	displayLogin 	db 13,10,"                          <<************************>>"
-                	db 13,10,"                          ::      LOG IN Module     ::"
+                	db 13,10,"                          ::         LOG IN         ::"
                 	db 13,10,"                          <<************************>>$"
 	success 	db 13,10,"        "
 			db 13,10,"                            -->Log In successful<--$"
 	fail 		db 13,10,"        "
 			db 13,10,"          -->Unauthorised user...Please enter a valid ID or password<--$"
 
-    	enter1 		db 13,10,"Enter HR ID: $"
-    	enter2 		db 13,10,"Enter Password: $"
+    	enter1 		db 13,10,"                          Enter HR ID: $"
+    	enter2 		db 13,10,"                          Enter Password: $"
 
         ; Constants
     	MAX_ID_LENGTH   equ 6
@@ -65,23 +65,23 @@
 	fileStaff db 'staff.txt',0           
 	
 	;Staff Inforamtion Variable
-	PROMPTSTAFFID 	db 13,10,'Enter the Satff ID(eg:SD0001) :$' 
+	PROMPTSTAFFID 	db 13,10,"                        Enter Staff ID(eg:SD0001):$"
 	STAFFID 	DB 6 DUP(?)
 	ID 		DB 13,10,"ID :$"
-	errorMsg 	db 10,13,"Invalid Staff ID!!! Please key in again....$"
+	errorMsg 	db 13,10,"                  Invalid Staff ID!!! Please key in again....$"
 	buffer 		db 600 dup(?)
-	PROMPTWH 	DB 10,13,"Enter TOTAL WORKING HOURS(000-300 HOUR):$"		;WORKING HOURS 
+	PROMPTWH 	DB 13,10,"Enter TOTAL WORKING HOURS(000-300 HOUR):$"		;WORKING HOURS 
 	TOTALWHTEMP 	DB 4 DUP(?)
 	TOTALWH 	DW ? 								;STORE TOTAL WORKING HOURS 
-	WRTOTALWH 	DB "Wrong TOTAL HOURS!!! Please key in (000-300)HOURS only!$"
-	DISTOTALWH 	DB 10,13,"Total Working Hours: $"
+	WRTOTALWH 	DB 13,10,"Wrong TOTAL HOURS!!! Please key in (000-300)HOURS only!$"
+	DISTOTALWH 	DB 13,10,"Total Working Hours: $"
 	DISWH 		DB 3 DUP(?)
-	openErrorMsg 	db 10,13,"Error occured when opening file$"			;error message when open file and read file
-	readErrorMsg 	db 10,13,"Error occured when reading file$"
+	openErrorMsg 	db 13,10,"Error occured when opening file$"			;error message when open file and read file
+	readErrorMsg 	db 13,10,"Error occured when reading file$"
 	;confirm message
-	confirmStaff 	db 10,13,"Sure this staff (YES=y/No=n)?$"
-	confirmTotalWH 	db 10,13,"Confirm Total Working Hours (YES=y/No=n)? $"
-	goBackLogIn	db 10,13,"Start Calculate Staff Payrolls? (YES=y/No=n) : $"
+	confirmStaff 	db 13,10,"Sure this staff (YES=y/No=n)?$"
+	confirmTotalWH 	db 13,10,"Confirm Total Working Hours (YES=y/No=n)? $"
+	goBackLogIn	db 13,10,"Start Calculate Staff Payrolls? (YES=y/No=n) : $"
 	confirmSI 	db ?
 	confirmGoBack	db ?
 
@@ -198,8 +198,8 @@
                     	db 13,10,"		    *****************************$"
     otReturn        	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||", "$"
     grossPayReturn  	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||", "$"
-    bonusReturn     db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||", "$"
-    netPayReturn    db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||",13,10,"		    ||5.Bonus Module           ||","$"
+    bonusReturn     	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||", "$"
+    netPayReturn    	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||",13,10,"		    ||5.Bonus Module           ||","$"
     	returnList3     db 13,10,"		    *****************************$"
     	returnSelect 	db 13,10,"Please Select One Of It To Return: $"
     	askReturn   	db 13,10,"Do you want to return?(y=yes/n=no): $"
@@ -222,8 +222,8 @@ LOGINBACK:
 	JMP LOGIN
 LOGIN:
     	mov loopCount[0],1
-	; Print UI Log In
-    	mov ah, 09h
+	CALL NEWLINE
+    	mov ah, 09h		; Print UI Log In
     	lea dx, displayLogin
     	int 21h 
 	jmp PROMPTLOGIN
@@ -436,7 +436,7 @@ ERRCONFIRMSI:
 
 KeyInTotalWH:
 	CALL changeBLUE
-	call NEWLINE
+BACKWH:	CALL NEWLINE
 	MOV AH,09H		;get total work hours
 	LEA DX,PROMPTWH
 	INT 21H
@@ -455,8 +455,7 @@ XRANGEWH:
 	MOV AH,09H		;DISPALY ERROR MESSAGES when total working hours out of range
 	LEA DX,WRTOTALWH
 	INT 21H
-	JMP KeyInTotalWH
-
+	JMP BACKWH
 displayWH:
 	CALL NEWLINE
 	MOV AH,09H		;display Total Working Hours for the staff
@@ -630,16 +629,15 @@ AGAIN2:
 	JG  XRANGE2
 	JMP CONFIRMRATE
 XRANGE1:
-	;DISPALY ERROR MESSAGES
-	MOV AH,09H
+	MOV AH,09H		;DISPALY ERROR MESSAGES when hours rate out of range
 	LEA DX,WRGRATE
 	INT 21H
 	JMP AGAIN
 XRANGE2:
-	;DISPALY ERROR MESSAGES
-	MOV AH,09H
+	MOV AH,09H		;DISPALY ERROR MESSAGES when ot rate out of range
 	LEA DX,WRGRATE
 	INT 21H
+	CALL NEWLINE
 	JMP AGAIN2
 
 CONFIRMRATE:
@@ -1545,7 +1543,6 @@ printErrorDays:
     	mov ah, 09h
     	lea dx, errDays
     	int 21h
-    	call NEWLINE
     	ret
 
 printErrorMessage:
@@ -1559,7 +1556,6 @@ dateTooHigh:
     	mov ah, 09h
     	lea dx, errorDays 
     	int 21h
-    	call NEWLINE
     	ret
 ;GROSS PAY ---------------------------------------------------------------------
 HOURR:
