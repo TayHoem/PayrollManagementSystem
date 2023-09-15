@@ -1048,8 +1048,6 @@ jumper4: jmp inputAllow
 jumper5: jmp confirmGua
 jumper6: jmp calculateNextStaff
 
-JSB1: jmp STAFFBACK
-
 exit:	 
     	CALL changeMAGENTA
      	mov ah,4ch
@@ -1064,7 +1062,6 @@ yesNo1:
     	je jumper1
     	jmp err_YesNo
     	ret
-
 yesNo2:
     	cmp al, YES
     	je check1
@@ -1072,13 +1069,12 @@ yesNo2:
     	je jumper2
     	jmp err_YesNo
     	ret
-
 yesNo3:
-    	cmp al, YES
-    	je JSB1
     	cmp al, NO
     	je check1
-    	jmp err_YesNo
+	cmp al, YES
+    	jne err_YesNo
+	jmp STAFFBACK
     	ret
 check1:
     	mov al,count
@@ -1573,7 +1569,6 @@ HOURR:
     	ADD AL, HOURRATE[1]
     	MOV HOUR_RATES, AL
 	RET
-
 OTR:
 	MOV AH,01H			;GET OT RATE FUNCTION
 	INT 21H
