@@ -169,7 +169,7 @@
     	inputErr        db 13,10, "<<Only Accept Integer Value Amount (EXP FORMAT:0123.45)..Re-enter again>>$"
 	enterErr	    db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
     	confirmAmount   db 13,10, "Confirm Deduction/Allowance amount? (y=Yes/n=No): $"
-	nextStaff	db 13,10, "Calculate Payrolls For Next Staff? (y=Yes/n=No): $"
+	nextStaff	db 13,10, "                  Calculate Payrolls For Next Staff? (y=Yes/n=No): $"
     	displayTotalNet db 13,10,"Total NET PAY = RM $"
 	yesNoNextStaff	db ?
 
@@ -207,7 +207,6 @@
    	calculate   	dw 0
     	loopCount	db 5 dup(0)
     	select 		db ?
-
 	ENDPAGE 	DB 13,10,13,10,13,10,13,10, "                        << -- END PAYROLLS SYSTEM ^_^ -->>$"  ;print when end
 .code
 main proc
@@ -1041,13 +1040,16 @@ goOut:
      	MOV AH,09H
      	LEA DX,exitNetPay 
      	INT 21H
-     	JMP EXIT
+     	JMP exit
 jumper1: jmp calcInt
+jumper2: jmp yesNoAmount
 jumper3: jmp inputDeduct
 jumper4: jmp inputAllow
 jumper5: jmp confirmGua
-jumper2: jmp yesNoAmount
+jumper6: jmp calculateNextStaff
+
 JSB1: jmp STAFFBACK
+
 exit:	 
     	CALL changeMAGENTA
      	mov ah,4ch
@@ -1139,7 +1141,6 @@ combineInt:
     	jz addDecimal  		; If so, terminate the input
 
     	jmp readDeduct
-jumper6: jmp calculateNextStaff
 addDecimal:
     	mov ah, 02h
     	mov dl, '.'
