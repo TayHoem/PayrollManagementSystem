@@ -84,6 +84,8 @@
 	goBackLogIn	db 13,10,"Start Calculate Staff Payrolls? (YES=y/No=n) : $"
 	confirmSI 	db ?
 	confirmGoBack	db ?
+	countCheckStaffId db 0
+	sameId 		db 13,10,"           Staff Payrolls already calculated!! Please select next staff !!$"
 
 	;OVERTIME
 	displayOvertime db 13, 10,"                          ^^************************^^"	;OT UI
@@ -219,7 +221,7 @@
 	totalPayrollsDec dw 0
 	countNet	dw 0
 	countStaffId 	dw 0
-	staffIDArr 	db 100 DUP(?)
+	staffIDArr 	db 100 DUP(0)
 	tryStaffId      db "SD0001$" 
 	disPayrolls 	db 13,10," "
           		db 13,10,"                          ^^***********************^^"			;STAFF UI
@@ -344,7 +346,15 @@ MINUSCOUNT:
 REINITIAL:
 	MOV countHTime,0
 	JMP STAFFINFORM
-STAFFBACKC: CALL changeBLUE
+doubleId:
+	CALL changeBLUE
+	mov ah,09h
+	lea dx,sameId
+	int 21h
+	call NEWLINE
+	sub countHTime,1
+	jmp STAFFINFORM
+STAFFBACKC: CALL changeBLUE 
 STAFFINFORM:			;Staff Information module
 	inc countHTime 
     	mov loopCount[1],2
@@ -443,7 +453,7 @@ displayInform2:
 	cmp bl,','
 	JE  DISPLAYLINE
     	cmp bl,'#'
-   	JE  confirmStaffId
+   	JE  CHECKSTAFFID1
     	mov ah,02h
     	mov dl,bl
     	int 21h
@@ -453,6 +463,10 @@ DISPLAYLINE: 			;if scan file found that ',' then print a new line
 	CALL NEWLINE
 	INC SI
 	JMP displayInform2
+CHECKSTAFFID1:
+	CMP countHtime,1
+	JNE searchStaffId
+	JMP confirmStaffId
 confirmStaffId:
 	CALL BORDER
 	MOV AH,09H
@@ -467,8 +481,10 @@ confirmStaffId:
    	JE  KeyInTotalWH	;YES - let user key in total working hours
     	CMP AL,NO
    	JNE ERRCONFIRMSI  	;IF NO - back to key in staff id
-   	JMP promptId
-
+   	JMP STAFFBACK
+searchStaffId:
+	CALL CompareId
+	jmp confirmStaffId
 ERRCONFIRMSI:
 	MOV AH,09H
 	LEA DX,ERRYESNO
@@ -524,7 +540,6 @@ CONFIRMWH:
     	CMP AL,NO
    	JE  KeyInTotalWH	;IF NO - back to key in staff id
    	JMP ERRCONFIRMWH
-
 backToLogin:
 	CALL NEWLINE
 	MOV AH,09H
@@ -662,8 +677,7 @@ AGAIN:
 	JG  XRANGE1
 	JMP AGAIN2
 AGAIN2:
-	;GET OT RATE
-	MOV AH,09H
+	MOV AH,09H		;GET OT RATE
   	LEA DX,PROMPTOTRATE
  	INT 21H
 
@@ -931,6 +945,7 @@ DISPLAYTOTALBN:
 	MOV TOTALBNDIS[2],DL
 	MOV TOTALBNDIS[3],DH
 
+	CALL NEWLINE
 	MOV AH,09H
 	LEA DX,DISBN
 	INT 21H
@@ -1081,7 +1096,6 @@ confirmGua:
     	lea dx,confirmAmount
     	int 21h
     	call confirmMoney
-
 calcInt:
     	call netpay		 ;display net pay
     	mov ax,TOTALGP	 	;Gross Pay
@@ -1095,7 +1109,6 @@ calcInt:
     	mov tempNetPayInt,ax
     	call calcDec
     	ret
-
 calcDec:
     	mov ax,0
    	mov ax,TOTALBNDEC 	;decimal bonus
@@ -1340,10 +1353,8 @@ readDecimal:
     	dec cx
     	jnz readDecimal  ; Continue reading decimal digits if cx is not zero
     	jmp readDone  	 ; Only exit when both decimal digits are read
-
 readDone:
     	ret
-
 errMsg:
     	mov temp1,0h
     	mov temp2,0h
@@ -1823,6 +1834,43 @@ putIN:
 	inc bx
 	MOV countStaffId,bx
 	RET
+
+CompareId:
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0
+	MOV SI,0
+putId:
+	MOV al,staffId[BX]
+	MOV dl,staffIDArr[si]
+	inc bx
+	inc si
+	cmp dl,','
+	je  nextId
+	cmp al,dl
+	je  checkStaffId
+	jmp noDUPLICATE
+noDUPLICATE:
+	DEC countCheckStaffId
+	JMP putId
+nextId:
+	MOV BX,0
+	cmp countCheckStaffId,5
+	JE  duplicateId
+	JMP oneMore
+oneMore:
+	MOV countCheckStaffId,0
+	MOV BX,0
+	MOV dl,staffIDArr[si]
+	cmp dl,'S'
+	JE  putId
+	ret
+checkStaffId:
+	inc countCheckStaffId
+	jmp putId
+duplicateId:
+	MOV countCheckStaffId,0
+	jmp doubleId
 
 startReport:
 	mov ah,09h
