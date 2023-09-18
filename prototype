@@ -47,11 +47,11 @@
 			db 13,10,"              ||STAFF ID   ||	        NAME		      ||"
 			db 13,10,"              ::===========::=================================::"
 			db 13,10,"              ||SD0001     || 	John Doe		      ||"
-			db 13,10,"              ||SD0002     || 	Jane Smith	              ||"
-			db 13,10,"              ||SD0003     || 	David Williams		      ||"
-			db 13,10,"              ||SD0004     || 	Emily Johnson		      ||"
+			db 13,10,"              ||MD0002     || 	Jane Smith	              ||"
+			db 13,10,"              ||FD0003     || 	David Williams		      ||"
+			db 13,10,"              ||IT0004     || 	Emily Johnson		      ||"
 			db 13,10,"              ||SD0005     || 	Michael Brown		      ||"
-			db 13,10,"              ||SD0006     || 	Susan Davis		      ||"
+			db 13,10,"              ||MD0006     || 	Susan Davis		      ||"
 			db 13,10,"              >>===========::=================================<<$"
     
     	exitSI  	db 13,10," "
@@ -381,7 +381,6 @@ STAFFINFORM:			;Staff Information module
 	mov ah,3eh		
 	int 21h
 	JMP promptId
-
 OPEN_ERR:
 	mov ah,09h
 	lea dx,openErrorMsg
@@ -389,7 +388,6 @@ OPEN_ERR:
 	mov ah,4ch		
 	mov al,01h		
 	int 21h
-
 READ_ERR:
 	mov ah,09h
 	lea dx,readErrorMsg
@@ -397,7 +395,6 @@ READ_ERR:
 	mov ah,4ch		
 	mov al,02h		
 	int 21h 
-   
 promptId:		
 	mov ah,09h		;prompt user to key in Staff ID
 	lea dx,PROMPTSTAFFID	
@@ -485,6 +482,7 @@ confirmStaffId:
 searchStaffId:
 	CALL CompareId
 	jmp confirmStaffId
+
 ERRCONFIRMSI:
 	MOV AH,09H
 	LEA DX,ERRYESNO
@@ -702,7 +700,6 @@ XRANGE2:
 	INT 21H
 	CALL NEWLINE
 	JMP AGAIN2
-
 CONFIRMRATE:
 	CALL NEWLINE
     	MOV AH,09H
@@ -1862,7 +1859,7 @@ oneMore:
 	MOV countCheckStaffId,0
 	MOV BX,0
 	MOV dl,staffIDArr[si]
-	cmp dl,'S'
+	cmp dl,0
 	JE  putId
 	ret
 checkStaffId:
