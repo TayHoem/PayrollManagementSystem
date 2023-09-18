@@ -245,13 +245,15 @@ main proc
 	mov ax,@data
 	mov ds,ax
 
-LOGINBACK:
-	mov countHTime,0
+LOGINBACK1:
 	CALL changeGREEN
 	MOV AH,09H
 	LEA DX,logoAirAsia
 	INT 21H
 	JMP LOGIN
+LOFINBACK2:
+	SUB countHTime,1
+	JMP LOGINBACK1
 LOGIN:
     	mov loopCount[0],1
 	CALL NEWLINE
@@ -440,7 +442,6 @@ ErrorId:
     	int 21h
 	CALL NEWLINE
 	JMP promptId
-
 displayInform1:
 	CALL changeBLUE
 	CALL BORDER      	;display the staff infor base on staff id
@@ -509,7 +510,7 @@ BACKWH:	CALL NEWLINE
 	CMP TOTALWH,300
 	JG  XRANGEWH
 	JMP displayWH
-JB1: jmp LOGINBACK
+JB1: jmp LOFINBACK2
 XRANGEWH:
 	MOV AH,09H		;DISPALY ERROR MESSAGES when total working hours out of range
 	LEA DX,WRTOTALWH
@@ -522,7 +523,6 @@ displayWH:
 	INT 21H
 	CALL DISPLAYTOTALWH
 	JMP CONFIRMWH
-	
 CONFIRMWH:
 	CALL NEWLINE
 	MOV AH,09H
@@ -1455,7 +1455,7 @@ loop loopWantedPlaces
     	sub calculate,1
     	jmp errMsg1		
     	ret	
-JL1: jmp LoginBack			;JUMPER TO JUMP BACK THE MODULE 
+JL1: jmp LoginBack2			;JUMPER TO JUMP BACK THE MODULE 
 JL2: jmp STAFFBACK
 JL3: jmp OT
 JL4: jmp grossPay
