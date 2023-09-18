@@ -25,8 +25,7 @@
     	enter1 		db 13,10,"                          Enter HR ID: $"
     	enter2 		db 13,10,"                          Enter Password: $"
 
-        ; Constants
-    	MAX_ID_LENGTH   equ 6
+    	MAX_ID_LENGTH   equ 6		 ; Constants
     	MAX_PASS_LENGTH equ 6
 
     	HRID_LABEL LABEL BYTE
@@ -556,6 +555,7 @@ backToLogin:
 LOGINERR:
 	call printErrorMessage
 	JMP backToLogin
+
 ERRCONFIRMWH:
 	call printErrorMessage
 	JMP CONFIRMWH
@@ -878,7 +878,7 @@ BONUSCAL:
 	MOV TOTALBNDEC,DX	;TOTALBNDEC = 58
 	;-----------------------------------------------------------------			
 	MOV AX,0 
-	MOV DX,0		    ;COUNT TOTAL BONUS DECIMAL NUMBER
+	MOV DX,0		;COUNT TOTAL BONUS DECIMAL NUMBER
 	MOV AX,TOTALGP		;AL = 4681 1248 H(TOTAL GP)
 	DIV BX       		;AL = 4681 (1248 H) / 100 = 46.81 (26 H) dx= 81
 	mov tempTOTALBNDEC,dl	;dl = 81 D (51 D)
@@ -911,7 +911,7 @@ BONUSCAL:
 	MOV AX,0
 	MOV AX,TOTALBNDEC        
     	MOV DX,0 
-    	MOV BX,1000         ;AX = 0000 DX =0682
+    	MOV BX,1000         	;AX = 0000 DX =0682
    	DIV BX
     	ADD TOTALBN,AX
     	MOV TOTALBNDEC,DX   
@@ -933,10 +933,10 @@ DISPLAYTOTALBN:
 	MOV AX,0
 	MOV DX,0
 	MOV AX,TOTALBN		;TOTAL BONUS PAY = 760 (02F8 H)
-	MOV BX,100		    ;694/100 = 6.94(AH = 00 AL = 06 DL= 94 D)
+	MOV BX,100		;694/100 = 6.94(AH = 00 AL = 06 DL= 94 D)
 	DIV BX
 	MOV BL,10
-	DIV BL			    ;AL = 00 H AH=06 H DL=94(53 H) DH=00 H
+	DIV BL			;AL = 00 H AH=06 H DL=94(53 H) DH=00 H
 	MOV TOTALBNDIS[0],AL	
 	MOV TOTALBNDIS[1],AH	
 	MOV TOTALBNDIS[2],DL
@@ -947,15 +947,11 @@ DISPLAYTOTALBN:
 	LEA DX,DISBN
 	INT 21H
 	
-	;DISPLAY NUMBER 1 DIGIT
 	MOV AH,02H
-	MOV DL,TOTALBNDIS[0]
+	MOV DL,TOTALBNDIS[0]	;DISPLAY NUMBER 1 DIGIT
 	ADD DL,30H
 	INT 21H
-
-	;DISPLAY NUMBER 2 DIGIT
-	MOV AH,02H
-	MOV DL,TOTALBNDIS[1]
+	MOV DL,TOTALBNDIS[1]	;DISPLAY NUMBER 2 DIGIT
 	ADD DL,30H
 	INT 21H
 	
@@ -965,37 +961,27 @@ DISPLAYTOTALBN:
 	MOV TOTALBNDIS[2],AL	;AL=09
 	MOV TOTALBNDIS[3],AH	;AH=04
 	
-
-	;DISPLAY NUMBER 3 DIGIT
 	MOV AH,02H
-	MOV DL,TOTALBNDIS[2]
+	MOV DL,TOTALBNDIS[2]	;DISPLAY NUMBER 3 DIGIT
 	ADD DL,30H
 	INT 21H
-
-	;DISPLAY NUMBER 4 DIGIT
-	MOV AH,02H
-	MOV DL,TOTALBNDIS[3]
+	MOV DL,TOTALBNDIS[3]	;DISPLAY NUMBER 4 DIGIT
 	ADD DL,30H
 	INT 21H
-
-	;DISPLAY '.'
-	MOV AH,02H
-	MOV DL,RATESPOINT
+	MOV DL,RATESPOINT	;DISPLAY '.'
 	INT 21H
 
-	;DISPLAY DECIMAL OF TOTAL BONUS
 	MOV AX,0      
-	MOV DX,0
-	MOV AX,TOTALBNDEC   ;682
+	MOV DX,0		;DISPLAY DECIMAL OF TOTAL BONUS
+	MOV AX,TOTALBNDEC   	;682
 	MOV BL,100
 	DIV BX		        ;BL =100 682/100=6.82 AL= 06,AH =82
 	MOV TOTALBNDIS[4],AL
 	MOV TOTALBNDIS[5],DL
 	
-	;DISPLAY DECIMAL NUMBER OF TOTAL BONUS
 	MOV AH,02H
-	MOV DL,TOTALBNDIS[4]
-	ADD DL,30H
+	MOV DL,TOTALBNDIS[4]	;DISPLAY DECIMAL NUMBER OF TOTAL BONUS
+	ADD DL,30H		;first decimal
 	INT 21H     
 	
 	MOV AX,0
@@ -1006,12 +992,10 @@ DISPLAYTOTALBN:
 	MOV TOTALBNDIS[6],AH	;AH=04
 
 	MOV AH,02H
-	MOV DL,TOTALBNDIS[5]
+	MOV DL,TOTALBNDIS[5]	;second decimal
 	ADD DL,30H
 	INT 21H	
-
-	MOV AH,02H
-	MOV DL,TOTALBNDIS[6]
+	MOV DL,TOTALBNDIS[6]	;third decimal
 	ADD DL,30H
 	INT 21H
 	call returnOrNot
@@ -1094,7 +1078,7 @@ confirmGua:
     	int 21h
     	call confirmMoney
 calcInt:
-    	call netpay		 ;display net pay
+    	call netpay		;display net pay
     	mov ax,TOTALGP	 	;Gross Pay
     	mov bx,tempAllowInt  	;Allowance
     	add ax,bx
@@ -1112,7 +1096,7 @@ calcDec:
     	mov bx,tempDeductDec	;560
     	mov dx,tempAllowDec		;999
     	add ax,dx
-    	sub ax,bx			;total=1327 52Fh
+    	sub ax,bx		;total=1327 52Fh
 	mov netPayDecStore,ax
     	xor dx,dx
     	mov bx,1000
@@ -1137,36 +1121,29 @@ convertIntDecimal:
     	mov bx,0
     	mov bl,netPayDec[0]		
     	add tempNetPayInt,bx	
-    	mov ax,tempNetPayInt  	;ax=15520,3CA0H
+    	mov ax,tempNetPayInt  		;ax=15520,3CA0H
     	mov bx,1000		
-    	div bx		;15520/1000: ax=15,dx=520
+    	div bx				;15520/1000: ax=15,dx=520
     	mov bl,10
-    	div bl		;15/10: al=01,ah=05
+    	div bl				;15/10: al=01,ah=05
     	mov netPayInt[0],al		;al=01
     	mov netPayInt[1],ah		;ah=05
-    	mov ax,dx		;ax=520
+    	mov ax,dx			;ax=520
     	mov dx,0
     	mov bx,100
-    	div bx		;ax=5,dx=20
+    	div bx				;ax=5,dx=20
     	mov netPayInt[2],dl		;ah=20
     	mov netPayInt[3],dh		
     	mov netPayInt[4],al		;al=05
 
-    	;DISPLAY NUMBER 1 DIGIT
-    	MOV AH,02H
+    	MOV AH,02H			;DISPLAY NUMBER 1 DIGIT
     	MOV DL,netPayInt[0]		;1
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 2 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[1]		;5
+    	MOV DL,netPayInt[1]		;DISPLAY NUMBER 2 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 3 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[4]		;6
+    	MOV DL,netPayInt[4]		;DISPLAY NUMBER 3 DIGIT
     	ADD DL,30H
     	INT 21H
 
@@ -1178,14 +1155,11 @@ convertIntDecimal:
     	MOV netPayInt[2],AL		;2
     	MOV netPayInt[3],AH		;0
 	
-    	;DISPLAY NUMBER 4 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[2]		;2
+    	MOV DL,netPayInt[2]		;DISPLAY NUMBER 4 DIGIT
     	ADD DL,30H
-    	INT 21H
-
-    	MOV AH,02H			;DISPLAY NUMBER 5 DIGIT
-    	MOV DL,netPayInt[3]		;0
+    	INT 21H			
+    	MOV DL,netPayInt[3]		;DISPLAY NUMBER 5 DIGIT
     	ADD DL,30H
     	INT 21H
     	call convertDecDecimal
@@ -1355,8 +1329,7 @@ readDone:
 errMsg:
     	mov temp1,0h
     	mov temp2,0h
-    	; Display error message
-    	mov ah, 09h
+    	mov ah, 09h	; Display error message
     	lea dx, inputErr
     	int 21h
     	call NewLine
@@ -1570,11 +1543,11 @@ errMsg1:
 ;-------------------------------------------------------------------------------
 BORDER:
 	MOV AH,09H
-	LEA DX,LINE
+	LEA DX,LINE		;display a line one screen
 	INT 21H
 	RET
-NEWLINE:
-	MOV AH,09
+NEWLINE:	
+	MOV AH,09		;use to go next line
 	LEA DX,NLINE
 	INT 21H
 	RET
@@ -1600,8 +1573,7 @@ WORKHOURS:
 	MOV TOTALWHTEMP[SI],AL
 	INC SI
 LOOP WORKHOURS
-	;CHANGE INPUT
-    	MOV AL,TOTALWHTEMP[0]
+    	MOV AL,TOTALWHTEMP[0]	;CHANGE INPUT from 3 variable store to 1 variable
     	MOV DL,100
     	MUL DL
 	MOV TOTALWH,AX
@@ -1616,7 +1588,7 @@ GODAYSERROR:
 	JMP daysError
 
 DISPLAYTOTALWH:
-	MOV AX,0 
+	MOV AX,0 	;use for display total working times
 	MOV DX,0
 	MOV AX,TOTALWH
 	MOV BX,100
@@ -1708,32 +1680,27 @@ displayDays:
     	lea dx,wantDays
     	int 21h
     	ret
-
 displayHours:
     	mov ah,09h
     	lea dx,hours
     	int 21h
     	ret
-
 displayWelcome:
     	mov ah, 09h
     	lea dx, displayOvertime
     	int 21h
     	ret 
-
 printErrorDays:
     	mov ah, 09h
     	lea dx, errDays
     	int 21h
     	ret
-
 printErrorMessage:
 	call NEWLINE
     	mov ah, 09h
     	lea dx, ERRYESNO
     	int 21h
     	ret
-
 dateTooHigh:
     	mov ah, 09h
     	lea dx, errorDays 
@@ -1763,8 +1730,7 @@ OTR:
 	INC SI
    LOOP OTR
 	
-	;VALIDATE
-	MOV AL, OTRATE[0]
+	MOV AL, OTRATE[0]		;change input from 2 variable to one variable
     	MOV DL, 10
     	MUL DL
     	ADD AL, OTRATE[1]
@@ -1816,7 +1782,7 @@ BONUSDECINPUT:			;GET DECIMAL PERCENTAGE OF THE BONUS RATE
 	MOV BONUS_RATEDEC,AL	;BONUS_RATEDEC = 0
 	RET
 ;----------------------------------------------
-storeStaffId:
+storeStaffId:			;store the staff id that key in by user
 	MOV BX,countStaffId 
 	MOV SI,0
 	MOV CX,6
@@ -1832,7 +1798,7 @@ putIN:
 	MOV countStaffId,bx
 	RET
 
-CompareId:
+CompareId:			;use to compare the Id key in already or not
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0
@@ -1852,7 +1818,7 @@ noDUPLICATE:
 	JMP putId
 nextId:
 	MOV BX,0
-	cmp countCheckStaffId,5
+	cmp countCheckStaffId,5		;if id equal than countCheckStaffId = 5
 	JE  duplicateId
 	JMP oneMore
 oneMore:
@@ -1869,7 +1835,7 @@ duplicateId:
 	MOV countCheckStaffId,0
 	jmp doubleId
 
-startReport:
+startReport:				;use to call the function start to print the summary at last
 	mov ah,09h
 	lea dx,disPayrolls 
 	int 21h
@@ -1880,16 +1846,16 @@ report:
 	CALL printAllReport
 	add si,2
    loop report
+
 	mov ah,09h
     	lea dx,disPayrollLast
 	int 21h
 
 	call printOutTotalPayroll   
 	
-	MOV AH,09H
+	MOV AH,09H		;display total number of calculate employee
 	LEA DX,dishowmany 
 	INT 21H
-	
 	MOV AH,02H    
 	MOV BX,countHTime
 	MOV DL,BL    
@@ -1907,22 +1873,16 @@ printAllReport:
 	mov ah,09h
 	lea dx,disPayrollsSpace1    
 	int 21h
-	   
-	mov ah,09h
 	lea dx,disPayrolls2
 	int 21h   
-	
-	mov ah,09h
 	lea dx,disPayrollsSpace2   
 	int 21h               
 	
- 	CALL printOutNet
+ 	CALL printOutNet	;print the total net pay for each staff
 	
 	mov ah,09h
 	lea dx,disPayrollsSpace3
 	int 21h
-	
-	mov ah,09h
     	lea dx,disPayrolls2 
 	int 21h 
 	ret
@@ -1939,7 +1899,7 @@ printOutID:
 backprint:
 	ret
 
-printOutNet:
+printOutNet:				;print out each total net at the summary report
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0
@@ -1960,21 +1920,14 @@ printOutNet:
     	mov netPayInt[3],dh		
     	mov netPayInt[4],al		;al=05
 
-    	;DISPLAY NUMBER 1 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[0]		;1
+    	MOV DL,netPayInt[0]		;DISPLAY NUMBER 1 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 2 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[1]		;5
+    	MOV DL,netPayInt[1]		;DISPLAY NUMBER 2 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 3 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[4]		;6
+    	MOV DL,netPayInt[4]		;DISPLAY NUMBER 3 DIGIT
     	ADD DL,30H
     	INT 21H
 
@@ -1986,15 +1939,11 @@ printOutNet:
     	MOV netPayInt[2],AL		;2
     	MOV netPayInt[3],AH		;0
 	
-    	;DISPLAY NUMBER 4 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[2]		;2
+    	MOV DL,netPayInt[2]		;DISPLAY NUMBER 4 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 5 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[3]		;0
+    	MOV DL,netPayInt[3]		;DISPLAY NUMBER 5 DIGIT
     	ADD DL,30H
     	INT 21H
     	
@@ -2034,7 +1983,7 @@ printOutNet:
 	INT 21H
 	ret   
 	
-printOutTotalPayroll:         
+printOutTotalPayroll:         		;print out the total sum of net pay of all employee in a month
     	MOV AX,0  
     	MOV AH,09H
     	LEA DX,disTotalPay
@@ -2042,15 +1991,15 @@ printOutTotalPayroll:
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0 
-	mov ax,totalPayrollsDec	;168
+	mov ax,totalPayrollsDec		;168
 	mov bx,1000
-	div bx			;ax=0001 dx=0068 
+	div bx				;ax=0001 dx=0068 
 	add totalPayrolls,ax
 	mov totalPayrollsDec,dx
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0 
-	mov ax,totalPayrolls        ;ax=15520,3CA0H  
+	mov ax,totalPayrolls        	;ax=15520,3CA0H  
     	mov bx,1000		
     	div bx				;15520/1000: ax=15,dx=520
     	mov bl,10
@@ -2065,21 +2014,14 @@ printOutTotalPayroll:
     	mov netPayInt[3],dh		
     	mov netPayInt[4],al		;al=05
 
-    	;DISPLAY NUMBER 1 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[0]		;1
+    	MOV DL,netPayInt[0]		;DISPLAY NUMBER 1 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 2 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[1]		;5
+    	MOV DL,netPayInt[1]		;DISPLAY NUMBER 2 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 3 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[4]		;6
+    	MOV DL,netPayInt[4]		;DISPLAY NUMBER 3 DIGIT
     	ADD DL,30H
     	INT 21H
 
@@ -2091,15 +2033,11 @@ printOutTotalPayroll:
     	MOV netPayInt[2],AL		;2
     	MOV netPayInt[3],AH		;0
 	
-    	;DISPLAY NUMBER 4 DIGIT
     	MOV AH,02H
-    	MOV DL,netPayInt[2]		;2
+    	MOV DL,netPayInt[2]		;DISPLAY NUMBER 4 DIGIT
     	ADD DL,30H
     	INT 21H
-
-    	;DISPLAY NUMBER 5 DIGIT
-    	MOV AH,02H
-    	MOV DL,netPayInt[3]		;0
+    	MOV DL,netPayInt[3]		;DISPLAY NUMBER 5 DIGIT
     	ADD DL,30H
     	INT 21H
     	
