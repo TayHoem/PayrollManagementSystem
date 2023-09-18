@@ -154,7 +154,7 @@
 	DECIMAL1 	DB 0
 	;BONUS
 	TOTALBN 	DW 0
-	TOTALBNDEC 	DB 0 		;DECIMAL BONUS
+	TOTALBNDEC 	DW 0 		;DECIMAL BONUS
 	tempTOTALBNDEC 	db 0
 	TOTALBNDIS 	DB 6 DUP(0)
 
@@ -179,18 +179,17 @@
 
 	count           db 0
     	temp1	    	dw 0
-    	temp2           db 0
+    	temp2           dw 0
     	integer         dw 1000,100,10,1
-    	decimal2	db 10,1
+    	decimal2	db 100,10,1
     	tempDeductInt   dw 0
-   	tempDeductDec   db 0
+   	tempDeductDec   dw 0
     	tempAllowInt    dw 0
-    	tempAllowDec    db 0
+    	tempAllowDec    dw 0
     	tempNetPayInt   dw 0
-    	netPayDec	db 2 dup(0)
+    	netPayDec	db 4 dup(0)
     	netPayInt	db 5 dup(0)
-    	realDec	    	db 2 dup(0)
-	netPayDecStore 	db ?
+	netPayDecStore 	dw ?
 
 	ERRYESNO 	DB 10,13,"Please enter y or n only !!!$"
 	nline 		DB 10,13,"$"   	;for new line  ; 0A =10,0D =13
@@ -215,9 +214,9 @@
 	countHTime	dw 0
 ;report             
 	netPayIntArr	dw 20 dup(0)
-	netPayDecArr	db 20 dup(0)   
+	netPayDecArr	dw 20 dup(0)   
 	totalPayrolls   dw 0      
-	totalPayrollsDec db 0
+	totalPayrollsDec dw 0
 	countNet	dw 0
 	countStaffId 	dw 0
 	staffIDArr 	db 100 DUP(?)
@@ -988,8 +987,10 @@ NETPAYSTART:
 	mov netPayInt[1],0
 	mov netPayInt[2],0
 	mov netPayInt[3],0
-	mov realDec[0],0
-	mov realDec[1],0
+	mov netPayDec[0],0
+	mov netPayDec[1],0
+	mov netPayDec[2],0
+	mov netPayDec[3],0
 	MOV tempNetPayInt,0	 
     	mov calculate,4
 	CALL NEWLINE
@@ -1019,8 +1020,8 @@ inputDeduct:
     	call readDeduct		; Read and validate deduction amount
     	mov ax,temp1
     	mov tempDeductInt,ax
-    	mov bl,temp2
-    	mov tempDeductDec,bl
+    	mov bx,temp2
+    	mov tempDeductDec,bx
     	mov temp1,0h
     	mov temp2,0h
     	jmp inputAllow
@@ -1038,8 +1039,8 @@ inputAllow:
     	call readDeduct		; Read and validate deduction amount
     	mov ax,temp1
     	mov tempAllowInt,ax
-    	mov bl,temp2
-    	mov tempAllowDec,bl
+    	mov bx,temp2
+    	mov tempAllowDec,bx
     	mov temp1,0h
     	mov temp2,0h
     	jmp confirmGua
@@ -1068,22 +1069,27 @@ calcInt:
 
 calcDec:
     	mov ax,0
-   	mov al,TOTALBNDEC 	;decimal bonus
-   	mov bl,tempDeductDec	;52
-    	mov dl,tempAllowDec	;96
-    	add al,dl
-    	sub al,bl		;total=134 86h
-    	mov bl,100
-   	div bl
-   	mov netPayDec[0],al	;01
-    	mov netPayDec[1],ah	;34
-	MOV netPayDecStore,ah
-    	mov ax,0
-    	mov al,netPayDec[1]
-   	mov bl,10
-    	div bl
-    	mov realDec[0],al
-    	mov realDec[1],ah
+   	mov ax,TOTALBNDEC 	;decimal bonus
+    	mov bx,tempDeductDec	;560
+    	mov dx,tempAllowDec		;999
+    	add ax,dx
+    	sub ax,bx			;total=1327 52Fh
+	mov netPayDecStore,ax
+    	xor dx,dx
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
     	call convertIntDecimal
     	ret
 convertIntDecimal:
@@ -1152,13 +1158,13 @@ convertDecDecimal:
      	int 21h
 
     	MOV AH,02H
-    	MOV DL,realDec[0]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-     	MOV DL,realDec[1]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-	MOV DL,DECIMAL1		;PRINT ADDITIONAL '0'
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
 	ADD DL,30H
 	INT 21H
 	call returnOrNot
@@ -1219,8 +1225,8 @@ storeNetPay:
 	MOV netPayIntArr[BX],AX
 	MOV AX,netPayIntArr[BX]
 	MOV AX,0
-	MOV AL,netPayDecStore
-	MOV netPayDecArr[BX],AL
+	MOV AX,netPayDecStore
+	MOV netPayDecArr[BX],AX
 	add countnet,2
 	ret
 check1:
@@ -1287,7 +1293,7 @@ addDecimal:
     	mov dl, '.'
     	int 21h
    	mov si, offset decimal2
-    	mov cx, 2
+    	mov cx, 3
 
 readDecimal:
     	mov ah, 01h
@@ -1299,8 +1305,8 @@ readDecimal:
     	xor ah, ah
     	mov bx,0
     	mov bl, [si]
-    	mul bl
-    	add temp2, al
+    	mul bx
+    	add temp2, ax
     	inc si
     	dec cx
     	jnz readDecimal  ; Continue reading decimal digits if cx is not zero
@@ -1922,23 +1928,33 @@ printOutNet:
      	mov dl,'.'
      	int 21h
 	
-	MOV AX,0
-	MOV BX,0
-	MOV AL,netPayDecArr[si]  
-	add totalPayrollsDec,al
-	MOV BL,10
-	DIV BL
-	mov realDec[0],al
-    	mov realDec[1],ah
+	mov ax,0
+    	xor dx,dx
+	mov ax,netPayDecArr[si]
+	
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
 	
     	MOV AH,02H
-    	MOV DL,realDec[0]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-     	MOV DL,realDec[1]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-	MOV DL,DECIMAL1		;PRINT ADDITIONAL '0'
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
 	ADD DL,30H
 	INT 21H
 	ret   
@@ -1951,7 +1967,7 @@ printOutTotalPayroll:
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0 
-	mov al,totalPayrollsDec	;168
+	mov ax,totalPayrollsDec	;168
 	mov bx,100
 	div bx			;ax=0001 dx=0068 
 	add totalPayrolls,ax
@@ -2016,22 +2032,32 @@ printOutTotalPayroll:
      	mov dl,'.'
      	int 21h
 	
-	MOV AX,0
-	MOV BX,0
-	MOV AL,totalPayrollsDec 
-	MOV BL,10
-	DIV BL
-	mov realDec[0],al
-    	mov realDec[1],ah
+	mov ax,0
+    	xor dx,dx
+	mov ax,totalPayrollsDec
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
 	
     	MOV AH,02H
-    	MOV DL,realDec[0]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-     	MOV DL,realDec[1]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
      	ADD DL,30H
      	INT 21H
-	MOV DL,DECIMAL1		;PRINT ADDITIONAL '0'
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
 	ADD DL,30H
 	INT 21H
 	ret
