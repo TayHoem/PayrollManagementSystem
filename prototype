@@ -156,7 +156,7 @@
 	TOTALBN 	DW 0
 	TOTALBNDEC 	DW 0 		;DECIMAL BONUS
 	tempTOTALBNDEC 	db 0
-	TOTALBNDIS 	DB 6 DUP(0)
+	TOTALBNDIS 	DB 7 DUP(0)
 
 	;NET PAY
 	displayNetPay   db 13, 10,"                          ^^*************************^^"	;NET PAY UI
@@ -168,8 +168,8 @@
                 	db 13, 10,"                          ^^*************************^^$"
 
    	askDeduct       db 13,10, "Staff Contain Any Deduction/Allowance? (y=Yes/n=No): $"
-   	enterDeduct     db 13,10, "-->Deduction Amount (0000.00 < Amount < 9999.99): RM $"
-    	enterAllow      db 13,10, "-->Allowance Amount (0000.00 < Amount < 9999.99): RM $"
+   	enterDeduct     db 13,10, "-->Deduction Amount (0000.000 < Amount < 9999.999): RM $"
+    	enterAllow      db 13,10, "-->Allowance Amount (0000.000 < Amount < 9999.999): RM $"
     	inputErr        db 13,10, "<<Only Accept Integer Value Amount (EXP FORMAT:0123.45)..Re-enter again>>$"
 	enterErr	db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
     	confirmAmount   db 13,10, "Confirm Deduction/Allowance amount? (y=Yes/n=No): $"
@@ -855,122 +855,151 @@ BONUSCAL:
 	MOV BX,0
     	MOV AX,TOTALGP		;GET BONUS = TOTALGROSSPAY X BONUS RATE
 	MOV BX,100		;AL = 1248 H 4680(TOTAL GP)
-	DIV BX       		;AX = 4681 (1249 H) / 100 = 0046 (2E H) DX=0081 (51H)
+	DIV BX       		;AX = 4681 (1249 H) / 100 = 0048 (2E H) DX=0081 (51H)
 	MUL BONUS_RATE		;RM46 X 18 = RM 828 (033C H)
 	MOV TOTALBN,AX 		;TOTAL BONUS PAY = 828
 	MOV AX,0
 	MOV AX,DX
 	MOV DX,0
 	MUL BONUS_RATE		;81 X 18 = 1458 AX = 5B2 H
-	DIV BX 			;AL = 14 DL = 58
+	DIV BX 			    ;AL = 14 DL = 58
 	ADD TOTALBN,AX		;TOTALBN = 842
-	MOV TOTALBNDEC,DL	;TOTALBNDEC = 58
-				
+	MOV TOTALBNDEC,DX	;TOTALBNDEC = 58
+	;-----------------------------------------------------------------			
 	MOV AX,0 
-	MOV DX,0		;COUNT TOTAL BONUS DECIMAL NUMBER
+	MOV DX,0		    ;COUNT TOTAL BONUS DECIMAL NUMBER
 	MOV AX,TOTALGP		;AL = 4681 1248 H(TOTAL GP)
 	DIV BX       		;AL = 4681 (1248 H) / 100 = 46.81 (26 H) dx= 81
-	mov tempTOTALBNDEC,dl	;dl = 81 D (50 D)
+	mov tempTOTALBNDEC,dl	;dl = 81 D (51 D)
 	MOV DX,0
 	MUL BONUS_RATEDEC	;RM46 X 28(0.28) = RM 1288 (508 H)
 	MOV BX,100 
-	DIV BX			;1288/100 = 12.88 AX=0012D (000C H) DX=0088D (0058 H)
+	DIV BX			    ;1288/100 = 12.88 AX=0012D (000C H) DX=0088D (0058 H)
 	ADD AX,TOTALBN 		;TOTALBN + 12 = RM 854
 	MOV TOTALBN,AX		
 	MOV AX,0
 	MOV AX,DX
 	MOV DX,0
-	ADD AL,TOTALBNDEC	;58 + 88 = 146 (92 H)
+	ADD AX,TOTALBNDEC	;58 + 88 = 146 (92 H)
 	MOV BX,100
-	DIV BX			;AX=0001 D DX= 0046 D
+	DIV BX			    ;AX=0001 D DX= 0046 D
 	ADD TOTALBN,AX		;854 + 1 = 855
-	MOV TOTALBNDEC,0
-	MOV TOTALBNDEC,DL	;TOTAL BN DEC = 46 ( 2E )
+	MOV TOTALBNDEC,0    
+	MOV AX,0
+	MOV AX,DX
+	MOV BX,10
+	MUL BX
+	MOV TOTALBNDEC,AX	;TOTAL BN DEC = 460 ( 2E )
 	MOV AX,0
 	MOV DX,0
 	MOV AL,tempTOTALBNDEC	;81 
 	MUL BONUS_RATEDEC	;0.81 x 0.28 = 0.2268
-	MOV BX,100
-	DIV BX     		;AX = 0022 DX = 0068		
-	ADD TOTALBNDEC,AL	;46 + 22 = 68   
-	MOV tempTOTALBNDEC,dl   
+	DIV BX     		    ;AX = 0226 DX = 0008		
+	ADD TOTALBNDEC,AX	;460 + 226 = 686   
+	MOV tempTOTALBNDEC,dl 
 	MOV AX,0
-	MOV AL,TOTALBNDEC        
-   	MOV DX,0
-    	DIV BX
+	MOV AX,TOTALBNDEC        
+    	MOV DX,0 
+    	MOV BX,1000         ;AX = 0000 DX =0682
+   	DIV BX
     	ADD TOTALBN,AX
-    	MOV TOTALBNDEC,DL
-	CMP tempTOTALBNDEC,50
-	JGE PUSH1
+    	MOV TOTALBNDEC,DX   
+    	CMP tempTOTALBNDEC,5
+	JGE PUSH1  
 	JMP DISPLAYTOTALBN
 PUSH1:
 	MOV AX,0
 	MOV DX,0
-	MOV AL,TOTALBNDEC	;68
-	ADD AL,1		;68 + 1 = 67
-	MOV BX,100		;EG IF 99 + 1 = 100 100/100
+	MOV AX,TOTALBNDEC	;68
+	ADD AX,1		;68 + 1 = 67
+	MOV BX,1000		;EG IF 99 + 1 = 100 100/100
 	DIV BX
 	ADD TOTALBN,AX
 	MOV TOTALBNDEC,0
-	MOV TOTALBNDEC,DL  		
+	MOV TOTALBNDEC,DX  		
 	JMP DISPLAYTOTALBN
 DISPLAYTOTALBN:
-	CALL NEWLINE		;DISPLAY BONUS PAY
-	MOV AH,09H
-	LEA DX,DISBN
-	INT 21H
-	
 	MOV AX,0
 	MOV DX,0
 	MOV AX,TOTALBN		;TOTAL BONUS PAY = 760 (02F8 H)
-	MOV BX,100		;840/100 = 8.40(AH = 00 AL = 08 DL= 40 D)
+	MOV BX,100		    ;694/100 = 6.94(AH = 00 AL = 06 DL= 94 D)
 	DIV BX
 	MOV BL,10
-	DIV BL			;AL = 00 H AH=08 H DL=40 (53 H) DH=00 H
+	DIV BL			    ;AL = 00 H AH=06 H DL=94(53 H) DH=00 H
 	MOV TOTALBNDIS[0],AL	
 	MOV TOTALBNDIS[1],AH	
 	MOV TOTALBNDIS[2],DL
 	MOV TOTALBNDIS[3],DH
 
-	MOV AH,02H		;DISPLAY NUMBER 1 DIGIT
+	MOV AH,09H
+	LEA DX,DISBN
+	INT 21H
+	
+	;DISPLAY NUMBER 1 DIGIT
+	MOV AH,02H
 	MOV DL,TOTALBNDIS[0]
 	ADD DL,30H
 	INT 21H
-	MOV DL,TOTALBNDIS[1]	;DISPLAY NUMBER 2 DIGIT
+
+	;DISPLAY NUMBER 2 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[1]
 	ADD DL,30H
 	INT 21H
 	
 	MOV AX,0
 	MOV AL,TOTALBNDIS[2] 	;AX = 0094
-	DIV BL    		;94/10= 9.4 AL=09 AH=04
+	DIV BL    		        ;94/10= 9.4 AL=09 AH=04
 	MOV TOTALBNDIS[2],AL	;AL=09
 	MOV TOTALBNDIS[3],AH	;AH=04
 	
-	MOV AH,02H		
-	MOV DL,TOTALBNDIS[2]	;DISPLAY NUMBER 3 DIGIT
+
+	;DISPLAY NUMBER 3 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[2]
 	ADD DL,30H
 	INT 21H
-	MOV DL,TOTALBNDIS[3]	;DISPLAY NUMBER 4 DIGIT
+
+	;DISPLAY NUMBER 4 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[3]
 	ADD DL,30H
 	INT 21H
-	MOV DL,RATESPOINT	;DISPLAY '.'
+
+	;DISPLAY '.'
+	MOV AH,02H
+	MOV DL,RATESPOINT
 	INT 21H
 
 	;DISPLAY DECIMAL OF TOTAL BONUS
-	MOV AX,0
-	MOV AL,TOTALBNDEC 	;64
-	DIV BL		  	;BL =10 (0AH) 64/10=6.4 AL= 06,AH =04H
+	MOV AX,0      
+	MOV DX,0
+	MOV AX,TOTALBNDEC   ;682
+	MOV BL,100
+	DIV BX		        ;BL =100 682/100=6.82 AL= 06,AH =82
 	MOV TOTALBNDIS[4],AL
-	MOV TOTALBNDIS[5],AH
+	MOV TOTALBNDIS[5],DL
 	
-	MOV AH,02H		;print decimal number of bonus
-	MOV DL,TOTALBNDIS[4]	;first decimal number
+	;DISPLAY DECIMAL NUMBER OF TOTAL BONUS
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[4]
 	ADD DL,30H
-	INT 21H
-	MOV DL,TOTALBNDIS[5]	;second decimal number
+	INT 21H     
+	
+	MOV AX,0
+	MOV AL,TOTALBNDIS[5] 	;AX = 0094   
+	MOV BL,10
+	DIV BL    		        ;94/10= 9.4 AL=09 AH=04
+	MOV TOTALBNDIS[5],AL	;AL=09
+	MOV TOTALBNDIS[6],AH	;AH=04
+
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[5]
 	ADD DL,30H
 	INT 21H	
-	MOV DL,DECIMAL1		;print '0' at last
+
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[6]
 	ADD DL,30H
 	INT 21H
 	call returnOrNot
@@ -1929,9 +1958,10 @@ printOutNet:
      	int 21h
 	
 	mov ax,0
+	mov ax,0
     	xor dx,dx
 	mov ax,netPayDecArr[si]
-	
+	add totalPayrollsDec,ax
     	mov bx,1000
     	div bx			;ax=1,dx=327
     	mov netPayDec[0],al		;1
@@ -1968,10 +1998,10 @@ printOutTotalPayroll:
 	MOV BX,0
 	MOV DX,0 
 	mov ax,totalPayrollsDec	;168
-	mov bx,100
+	mov bx,1000
 	div bx			;ax=0001 dx=0068 
 	add totalPayrolls,ax
-	mov totalPayrollsDec,dl
+	mov totalPayrollsDec,dx
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0 
@@ -2033,6 +2063,7 @@ printOutTotalPayroll:
      	int 21h
 	
 	mov ax,0
+	mov bx,0
     	xor dx,dx
 	mov ax,totalPayrollsDec
     	mov bx,1000
