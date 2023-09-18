@@ -213,9 +213,11 @@
     	loopCount	db 5 dup(0)
     	select 		db ?
 	countHTime	dw 0
-;report
-	netPayIntArr	dw 10 dup(0)
-	netPayDecArr	db 10 dup(0)
+;report             
+	netPayIntArr	dw 20 dup(0)
+	netPayDecArr	db 20 dup(0)   
+	totalPayrolls   dw 0      
+	totalPayrollsDec db 0
 	countNet	dw 0
 	countStaffId 	dw 0
 	staffIDArr 	db 100 DUP(?)
@@ -223,9 +225,10 @@
 	disPayrolls 	db 13,10," "
           		db 13,10,"                          ^^***********************^^"			;STAFF UI
     			db 13,10,"                          ::    Payrolls Report    ::"
-    			db 13,10,"                          ^^***********************^^"
+    			db 13,10,"                          ^^***********************^^"   
+    			db 13,10,"                  << Monthly Summary Total Payrolls Report >>"
 			db 13,10,"              >>==============================================<<"
-			db 13,10,"              ||STAFF ID   ||	        NET PAY(RM)	      ||"
+			db 13,10,"              ||STAFF ID   ||	         NET PAY(RM)	      ||"
 			db 13,10,"              ::===========::=================================::$"
     	disPayrolls1		db 13,10,"              ||$"
     	disPayrolls2 		db "||$"
@@ -233,7 +236,9 @@
     	disPayrollsSpace2	db " 	$"
     	disPayrollsSpace3 	db "		      $"
     	disPayrollLast		db 13,10,"              >>===========::=================================<<$" 
-	ENDPAGE 	DB 13,10,13,10,13,10,13,10, "                        << -- END PAYROLLS SYSTEM ^_^ -->>$"  ;print when end
+	disTotalPay     db 13,10,"              Total Payrolls = RM $" 
+    	dishowmany      db 13,10,"              Total Calculated Staff = $"
+	ENDPAGE 	DB 13,10,13,10,"                        << -- END PAYROLLS SYSTEM ^_^ -->>$"  ;print when end
 .code
 main proc
 	mov ax,@data
@@ -1168,8 +1173,11 @@ goOut:
 printFinalReport:
 	CALL changeMAGENTA
 	call startReport
-	jmp exit
-exit:	 
+	jmp exit        
+exit:	           
+        MOV AH,09H
+	LEA DX,ENDPAGE
+	INT 21H 
      	mov ah,4ch
         int 21h
 jumper1: jmp calcInt
@@ -1204,14 +1212,16 @@ yesNo3:
     	ret
 
 storeNetPay:
+	MOV AX,0
 	MOV BX,0
 	MOV BX,countNet		;bx=0
 	MOV AX,tempNetPayInt
 	MOV netPayIntArr[BX],AX
+	MOV AX,netPayIntArr[BX]
 	MOV AX,0
 	MOV AL,netPayDecStore
 	MOV netPayDecArr[BX],AL
-	INC countNet
+	add countnet,2
 	ret
 check1:
     	mov al,count
@@ -1384,10 +1394,6 @@ changeMAGENTA:
         MOV cx, 0000h
         MOV dx, 184fh    
         INT 10H
-	
-	;MOV AH,09H
-	;LEA DX,ENDPAGE
-	;INT 21H
 	RET
 ;-------------------------------------------------------------------------------
 choose:				;choose return to where
@@ -1792,11 +1798,23 @@ startReport:
 	mov cx,countHTime
 report:
 	CALL printAllReport
-	INC SI
+	add si,2
    loop report
 	mov ah,09h
     	lea dx,disPayrollLast
 	int 21h
+
+	call printOutTotalPayroll   
+	
+	MOV AH,09H
+	LEA DX,dishowmany 
+	INT 21H
+	
+	MOV AH,02H    
+	MOV BX,countHTime
+	MOV DL,BL    
+	ADD DL,30H
+	INT 21H
 	ret
 
 printAllReport:
@@ -1845,7 +1863,9 @@ printOutNet:
 	MOV AX,0
 	MOV BX,0
 	MOV DX,0
-	mov ax,netPayIntArr[si]         ;ax=15520,3CA0H
+	mov ax,netPayIntArr[si]         ;ax=15520,3CA0H  
+	add totalPayrolls,ax
+	
     	mov bx,1000		
     	div bx				;15520/1000: ax=15,dx=520
     	mov bl,10
@@ -1905,6 +1925,100 @@ printOutNet:
 	MOV AX,0
 	MOV BX,0
 	MOV AL,netPayDecArr[si]  
+	add totalPayrollsDec,al
+	MOV BL,10
+	DIV BL
+	mov realDec[0],al
+    	mov realDec[1],ah
+	
+    	MOV AH,02H
+    	MOV DL,realDec[0]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+     	MOV DL,realDec[1]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+	MOV DL,DECIMAL1		;PRINT ADDITIONAL '0'
+	ADD DL,30H
+	INT 21H
+	ret   
+	
+printOutTotalPayroll:         
+    	MOV AX,0  
+    	MOV AH,09H
+    	LEA DX,disTotalPay
+    	INT 21H
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0 
+	mov al,totalPayrollsDec	;168
+	mov bx,100
+	div bx			;ax=0001 dx=0068 
+	add totalPayrolls,ax
+	mov totalPayrollsDec,dl
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0 
+	mov ax,totalPayrolls        ;ax=15520,3CA0H  
+    	mov bx,1000		
+    	div bx				;15520/1000: ax=15,dx=520
+    	mov bl,10
+    	div bl				;15/10: al=01,ah=05
+    	mov netPayInt[0],al		;al=01
+    	mov netPayInt[1],ah		;ah=05
+    	mov ax,dx			;ax=520
+    	mov dx,0
+    	mov bx,100
+    	div bx		;ax=5,dx=20
+    	mov netPayInt[2],dl		;ah=20
+    	mov netPayInt[3],dh		
+    	mov netPayInt[4],al		;al=05
+
+    	;DISPLAY NUMBER 1 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[0]		;1
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 2 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[1]		;5
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 3 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[4]		;6
+    	ADD DL,30H
+    	INT 21H
+
+    	MOV AX,0
+    	MOV AL,netPayInt[2]		;20
+    	mov bh,0
+    	mov bl,10
+    	DIV BL    			;20/10,al=2,ah=0
+    	MOV netPayInt[2],AL		;2
+    	MOV netPayInt[3],AH		;0
+	
+    	;DISPLAY NUMBER 4 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[2]		;2
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 5 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[3]		;0
+    	ADD DL,30H
+    	INT 21H
+    	
+	mov ah,02h
+     	mov dl,'.'
+     	int 21h
+	
+	MOV AX,0
+	MOV BX,0
+	MOV AL,totalPayrollsDec 
 	MOV BL,10
 	DIV BL
 	mov realDec[0],al
