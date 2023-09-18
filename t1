@@ -1,0 +1,2141 @@
+.model small
+.stack 100
+.data
+	logoAirAsia	DB 13,10,"                		    Welcome To"					;LOGO
+			DB 13,10,"             AAAAA   IIIIII RRRRRR    AAAAA   SSSSSS  IIIIII  AAAAA"
+			DB 13,10,"            A     A    I    R     R  A     A  S         I    A     A"
+			DB 13,10,"            AAAAAAA    I    RRRRRR   AAAAAAA  SSSSS     I    AAAAAAA"
+			DB 13,10,"            A     A    I    R    R   A     A       S    I    A     A"
+			DB 13,10,"            A     A  IIIIII R     R  A     A  SSSSSS  IIIIII A     A"
+			DB 13,10,"                                 PAYROLL SYSTEM$"
+	
+    	;LOGIN
+    	checkID 	db "HR001",0
+    	checkPass 	db "12345",0
+
+	;LOGIN UI
+	displayLogin 	db 13,10,"                          <<************************>>"
+                	db 13,10,"                          ::         LOG IN         ::"
+                	db 13,10,"                          <<************************>>$"
+	success 	db 13,10,"        "
+			db 13,10,"                            -->Log In successful<--$"
+	fail 		db 13,10,"        "
+			db 13,10,"          -->Unauthorised user...Please enter a valid ID or password<--$"
+
+    	enter1 		db 13,10,"                          Enter HR ID: $"
+    	enter2 		db 13,10,"                          Enter Password: $"
+
+        ; Constants
+    	MAX_ID_LENGTH   equ 6
+    	MAX_PASS_LENGTH equ 6
+
+    	HRID_LABEL LABEL BYTE
+    	idmax db MAX_ID_LENGTH     	; Max length of HR ID
+    	inputID db ?               	; Number of chars that user entered
+    	actID db MAX_ID_LENGTH dup(0) 	; Array of chars (null-terminated)
+
+    	HRPASSWORD db 5 dup(0)
+
+	;STAFF INFROMATION
+	displaySI 	db 13,10," "
+          		db 13,10,"                          ^^***********************^^"			;STAFF UI
+    			db 13,10,"                          ::   STAFF Information   ::"
+    			db 13,10,"                          ^^***********************^^"
+			db 13,10,"              >>==============================================<<"
+			db 13,10,"              ||	    PAYROLL CANDIDATES SELECTION      ||"
+			db 13,10,"              ::===========::=================================::"
+			db 13,10,"              ||STAFF ID   ||	        NAME		      ||"
+			db 13,10,"              ::===========::=================================::"
+			db 13,10,"              ||SD0001     || 	John Doe		      ||"
+			db 13,10,"              ||SD0002     || 	Jane Smith	              ||"
+			db 13,10,"              ||SD0003     || 	David Williams		      ||"
+			db 13,10,"              ||SD0004     || 	Emily Johnson		      ||"
+			db 13,10,"              ||SD0005     || 	Michael Brown		      ||"
+			db 13,10,"              ||SD0006     || 	Susan Davis		      ||"
+			db 13,10,"              >>===========::=================================<<$"
+    
+    	exitSI  	db 13,10," "
+	        	db 13,10,"                          ^^************************^^"
+    	        	db 13,10,"                          ::    Exit STAFF Module   ::"
+    	        	db 13,10,"                          ^^************************^^$"
+	line    	db 13,10," "
+	        	db 13,10,"================================================================================$"
+	
+	fhandle dw ?  									;FILE STORE VARIABLE
+	fileStaff db 'staff.txt',0           
+	
+	;Staff Inforamtion Variable
+	PROMPTSTAFFID 	db 13,10,"                        Enter Staff ID(eg:SD0001):$"
+	STAFFID 	DB 6 DUP(?)
+	ID 		DB 13,10,"ID :$"
+	errorMsg 	db 13,10,"                  Invalid Staff ID!!! Please key in again....$"
+	buffer 		db 600 dup(?)
+	PROMPTWH 	DB 13,10,"Enter TOTAL WORKING HOURS(000-300 HOUR):$"		;WORKING HOURS 
+	TOTALWHTEMP 	DB 4 DUP(?)
+	TOTALWH 	DW ? 								;STORE TOTAL WORKING HOURS 
+	WRTOTALWH 	DB 13,10,"Wrong TOTAL HOURS!!! Please key in (000-300)HOURS only!$"
+	DISTOTALWH 	DB 13,10,"Total Working Hours: $"
+	DISWH 		DB 3 DUP(?)
+	openErrorMsg 	db 13,10,"Error occured when opening file$"			;error message when open file and read file
+	readErrorMsg 	db 13,10,"Error occured when reading file$"
+	;confirm message
+	confirmStaff 	db 13,10,"Sure this staff (YES=y/No=n)?$"
+	confirmTotalWH 	db 13,10,"Confirm Total Working Hours (YES=y/No=n)? $"
+	goBackLogIn	db 13,10,"Start Calculate Staff Payrolls? (YES=y/No=n) : $"
+	confirmSI 	db ?
+	confirmGoBack	db ?
+	countCheckStaffId db 0
+	sameId 		db 13,10,"Staff Payrolls already calculated!! Please select next staff !!$"
+
+	;OVERTIME
+	displayOvertime db 13, 10,"                          ^^************************^^"	;OT UI
+    			db 13, 10,"                          ::    OVERTIME Module     ::"	
+    			db 13, 10,"                          ^^************************^^$"
+   
+	exitOvertime 	db 13, 10,"                          ^^************************^^"
+    			db 13, 10,"                          ::   Exit OVERTIME Module ::"
+    			db 13, 10,"                          ^^************************^^$"
+    
+    	promptWorkDays 	db 13, 10, "Total Number of Working Days(0-29): $"
+    	errDays 	db 13, 10, "Digit Acceptable Range(0-9) only...Please insert a new day!!! $"
+    	errorDays 	db 13, 10, "Days cannot above 29 days...Please insert a new day!!! $"
+    	correct_Days 	db 13, 10, "Correct day input? (y/n): $"
+   	display_OTHours db 13, 10, "Total Overtime Hours: $"
+    	hours		db " Hours$"
+    	wantDays	db " Days$"
+
+   	digit 		db 2 dup(?) ; Array to store the digits
+    	total_overtime 	db 4 dup(?)
+   	workDays 		db 0
+    	days  		dw ?  
+
+	;GROSS PAY
+	displayGP 	db 13, 10,"                          ^^************************^^"	;GP UI
+    			db 13, 10,"                          ::     GROSS PAY Module   ::"
+    			db 13, 10,"                          ^^************************^^$"
+    
+	exitGP 	        db 13, 10,"                          ^^************************^^"
+    	        	db 13, 10,"                          ::      EXIT GROSS PAY    ::"
+    	        	db 13, 10,"                          ^^************************^^$"
+	PROMPTHOURRATE  DB 10,13,"Enter Hour Rate RM(00-15): RM $" 
+	PROMPTOTRATE 	DB 10,13,"Enter OT Rate RM(16-30): RM $"
+	perDays		DB "/hours$"
+   	HOURRATE 	DB 2 DUP(0)
+	OTRATE 		DB 2 DUP(0)
+	HOUR_RATES 	DB ?
+	OT_RATES 	DB ?
+	WRGRATE 	DB 10,13,"Wrong Rate!!! Please key-in rate in RM(0-15) only!$"
+	WRGRATE2 	DB 10,13,"Wrong Rate!!! Please key-in rate in RM(0-30) only!$"
+	CONFIRM_RATE 	DB 10,13,"Confirm Hours and OT Rate(y/n)?$"
+	DISGP 		DB 10,13,"GROSS PAY = RM $"
+	DECIMAL 	DB ".000$"
+	TOTALWHPAY 	DW ?		;TO STORE TOTAL NORMAL WORK PAY (CAN USE DW TO 4 HEXA NUM)
+	TOTALOTPAY 	DW ?		;TO STORE TOTAL NORMAL OT PAY 	
+	TOTALGP 	DW ?   		;TOTAL OF GROSS PAY
+	TOTALGPDIS 	DB 4 DUP(0)	;USE TO DISPLAY TOTAL OF GROSS PAY
+
+	;BONUS
+	displayBN 	db 13, 10,"                          ^^*************************^^"		;BONUS UI
+    			db 13, 10,"                          ::       BONUS Module      ::"
+    			db 13, 10,"                          ^^*************************^^",13,10,"$"
+    
+	exitBN 	  	db 13, 10,"                          ^^*************************^^"
+    	        	db 13, 10,"                          ::	  Exit BONUS Module   ::"
+    	        	db 13, 10,"                          ^^*************************^^$"
+	BONUS_GET 	DB 10,13,"Bonus? (YES=y/NO=n) :$"
+	PROMPTBONUSRATE DB 10,13,"Enter Bonus Rate (00.00-20.00)% :$" 
+	percent 	DB '%'
+   	BONUSRATES 	DB 2 DUP(0)
+	RATESPOINT 	DB '.'
+	BONUSRATEDECI 	DB 2 DUP(?)
+	BONUS_RATE 	DB ?
+	BONUS_RATEDEC 	DB ?
+	WRBONUSRATE 	DB 10,13,"Wrong Rate!!! Please key in rate in (00.00-20.00)% only!$"
+	CONFIRM_BNRATE 	DB 10,13,"Confirm BONUS Rate(y/n):$"
+	DISBN 		DB 10,13,"BONUS = RM $"
+	DECIMAL1 	DB 0
+	;BONUS
+	TOTALBN 	DW 0
+	TOTALBNDEC 	DW 0 		;DECIMAL BONUS
+	tempTOTALBNDEC 	db 0
+	TOTALBNDIS 	DB 7 DUP(0)
+
+	;NET PAY
+	displayNetPay   db 13, 10,"                          ^^*************************^^"	;NET PAY UI
+                	db 13, 10,"                          ::      NET PAY Module     ::"
+                	db 13, 10,"                          ^^*************************^^$"
+
+	exitNetPay      db 13, 10,"                          ^^*************************^^"
+                	db 13, 10,"                          ::   Exit NET PAY Module   ::"
+                	db 13, 10,"                          ^^*************************^^$"
+
+   	askDeduct       db 13,10, "Staff Contain Any Deduction/Allowance? (y=Yes/n=No): $"
+   	enterDeduct     db 13,10, "-->Deduction Amount (0000.000 < Amount < 9999.999): RM $"
+    	enterAllow      db 13,10, "-->Allowance Amount (0000.000 < Amount < 9999.999): RM $"
+    	inputErr        db 13,10, "<<Only Accept Integer Value Amount (EXP FORMAT:0123.45)..Re-enter again>>$"
+	enterErr	db 13,10, "<<Please Enter 4 Digit Whole Number & 2 Digit Decimal Number...>>$"
+    	confirmAmount   db 13,10, "Confirm Deduction/Allowance amount? (y=Yes/n=No): $"
+	nextStaff	db 13,10, "                Calculate Payrolls For Next Staff? (y=Yes/n=No): $"
+    	displayTotalNet db 13,10,"Total NET PAY = RM $"
+	yesNoNextStaff	db ?
+
+	count           db 0
+    	temp1	    	dw 0
+    	temp2           dw 0
+    	integer         dw 1000,100,10,1
+    	decimal2	db 100,10,1
+    	tempDeductInt   dw 0
+   	tempDeductDec   dw 0
+    	tempAllowInt    dw 0
+    	tempAllowDec    dw 0
+    	tempNetPayInt   dw 0
+    	netPayDec	db 4 dup(0)
+    	netPayInt	db 5 dup(0)
+	netPayDecStore 	dw ?
+
+	ERRYESNO 	DB 10,13,"Please enter y or n only !!!$"
+	nline 		DB 10,13,"$"   	;for new line  ; 0A =10,0D =13
+	YES 		equ 'y'
+    	NO 		equ 'n'
+
+	;Return
+    	returnList1     db 13,10,"		    *****************************"
+                    	db 13,10,"		    ||       RETURN LIST       ||"
+                    	db 13,10,"		    *****************************$"
+    otReturn        	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||", "$"
+    grossPayReturn  	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||", "$"
+    bonusReturn     	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||", "$"
+    netPayReturn    	db 13,10,"		    ||1.Log In Module          ||",13,10,"		    ||2.Staff Info Module      ||",13,10,"		    ||3.Overtime Module        ||",13,10,"		    ||4.Gross Pay Module       ||",13,10,"		    ||5.Bonus Module           ||","$"
+    	returnList3     db 13,10,"		    *****************************$"
+    	returnSelect 	db 13,10,"Please Select One Of It To Return: $"
+    	askReturn   	db 13,10,"Do you want to return?(y=yes/n=no): $"
+   	error 		db 13,10,"Please choose number in the list only!!!$"
+   	calculate   	dw 0
+    	loopCount	db 5 dup(0)
+    	select 		db ?
+	countHTime	dw 0
+;report             
+	netPayIntArr	dw 20 dup(0)
+	netPayDecArr	dw 20 dup(0)   
+	totalPayrolls   dw 0      
+	totalPayrollsDec dw 0
+	countNet	dw 0
+	countStaffId 	dw 0
+	staffIDArr 	db 100 DUP(0)
+	tryStaffId      db "SD0001$" 
+	disPayrolls 	db 13,10," "
+          		db 13,10,"                          ^^***********************^^"			;STAFF UI
+    			db 13,10,"                          ::    Payrolls Report    ::"
+    			db 13,10,"                          ^^***********************^^"   
+    			db 13,10,"                  << Monthly Summary Total Payrolls Report >>"
+			db 13,10,"              >>==============================================<<"
+			db 13,10,"              ||STAFF ID   ||	         NET PAY(RM)	      ||"
+			db 13,10,"              ::===========::=================================::$"
+    	disPayrolls1		db 13,10,"              ||$"
+    	disPayrolls2 		db "||$"
+    	disPayrollsSpace1	db "    $"
+    	disPayrollsSpace2	db " 	$"
+    	disPayrollsSpace3 	db "		      $"
+    	disPayrollLast		db 13,10,"              >>===========::=================================<<$" 
+	disTotalPay     db 13,10,"              Total Payrolls = RM $" 
+    	dishowmany      db 13,10,"              Total Calculated Staff = $"
+	ENDPAGE 	DB 13,10,13,10,"                        << -- END PAYROLLS SYSTEM ^_^ -->>$"  ;print when end
+.code
+main proc
+	mov ax,@data
+	mov ds,ax
+
+LOGINBACK:
+	mov countHTime,0
+	CALL changeGREEN
+	MOV AH,09H
+	LEA DX,logoAirAsia
+	INT 21H
+	JMP LOGIN
+LOGIN:
+    	mov loopCount[0],1
+	CALL NEWLINE
+    	mov ah, 09h		; Print UI Log In
+    	lea dx, displayLogin
+    	int 21h 
+	jmp PROMPTLOGIN
+PROMPTLOGIN:
+    	lea dx, enter1		; Enter HR ID
+    	int 21h
+
+    	mov ah, 0Ah
+    	lea dx, HRID_LABEL   	; Tell INT 21h to store captured string here.
+    	int 21h
+promptPassword:
+    	mov ah,09h		; Enter Password
+    	lea dx, enter2
+    	int 21h
+
+    	mov cx,5
+    	mov bx,0
+    	jmp accept_Pass
+accept_Pass:
+    	mov ah, 07h
+    	int 21h
+    	mov HRPASSWORD[bx],al
+
+    	mov ah,02h
+   	mov dl,'*'
+    	int 21h
+
+    	inc bx
+        loop accept_Pass
+
+    	lea si, actID	   	; Compare HR ID
+    	lea di, checkID
+    	mov cx, MAX_ID_LENGTH
+compareID1:
+    	mov al, [si]       	; Load the next character from si into al
+    	cmp al, 0Dh         	; Check for carriage return (CR)
+    	jne compareID2  	; Skip the CR character
+    	mov al,00h
+compareID2:
+    	mov bl, [di]       	; Load the character from di into bl
+    	cmp al, bl
+    	jne loginFailed    	; HR ID verification failed
+
+    	inc si		  	; Increment si and di to move to the next character
+    	inc di
+loop compareID1 
+	lea si,HRPASSWORD
+	lea di,checkPass
+	mov cx,MAX_PASS_LENGTH
+comparePassword1:
+	mov al,[si]
+	mov bl,[di]
+	cmp cx,1
+	jne comparePassword2
+	mov al,00h
+comparePassword2:
+	cmp al,bl
+	jne loginFailed
+	inc si
+	inc di
+	cmp al,0
+	je loginSuccessful
+loop comparePassword1
+
+loginSuccessful:   
+        CALL changeBLUE
+    	mov ah, 09h		;Code to execute when login is successful
+    	lea dx, success
+    	int 21h
+    	jmp STAFFINFORM
+
+loginFailed:
+    	mov ah, 09h		; Code to execute when login fails
+    	lea dx, fail
+    	int 21h
+	CALL NEWLINE
+    	jmp PROMPTLOGIN
+STAFFBACK: 
+	CALL changeBLUE
+	MOV TOTALWH,0
+	MOV AX,countHTime
+	CMP AL,1
+	JE  REINITIAL
+	JG  MINUSCOUNT
+MINUSCOUNT: 
+	sub countHTime,1
+	JMP STAFFINFORM
+REINITIAL:
+	MOV countHTime,0
+	JMP STAFFINFORM
+doubleId:
+	CALL changeBLUE
+	mov ah,09h
+	lea dx,sameId
+	int 21h
+	call NEWLINE
+	jmp STAFFINFORM
+STAFFBACKC: CALL changeBLUE
+STAFFINFORM:			;Staff Information module
+	inc countHTime 
+    	mov loopCount[1],2
+	MOV AH,09H
+	LEA DX,displaySI
+	INT 21H
+
+	MOV AX,0
+	MOV AH,3DH		;Open an Existing "staff" File
+	MOV AL,2		
+	LEA DX,fileStaff
+	INT 21H
+	MOV fhandle,AX
+	JC  OPEN_ERR
+	
+	mov ah,3fh		;READ data from "staff" file
+    	lea dx,buffer
+	mov cx,600
+	mov bx,fhandle
+	int 21h 
+	JC  READ_ERR
+
+	mov bx,fhandle		;Close file
+	mov ah,3eh		
+	int 21h
+	JMP promptId
+
+OPEN_ERR:
+	mov ah,09h
+	lea dx,openErrorMsg
+	int 21h
+	mov ah,4ch		
+	mov al,01h		
+	int 21h
+
+READ_ERR:
+	mov ah,09h
+	lea dx,readErrorMsg
+	int 21h
+	mov ah,4ch		
+	mov al,02h		
+	int 21h 
+   
+promptId:		
+	mov ah,09h		;prompt user to key in Staff ID
+	lea dx,PROMPTSTAFFID	
+	int 21h
+
+	MOV CX,6  
+    	MOV SI,0
+keyInId:
+    	MOV AH,01H
+    	INT 21H
+    	MOV STAFFID[SI],AL
+    	INC SI
+    	LOOP keyInId
+
+	MOV SI,0
+	LEA si,buffer
+readId:
+	mov di,0
+	lea di,staffId
+validate:	           
+    	;validate staff id      
+    	mov al,[di]
+    	mov bl,[si] 
+	inc si
+    	inc di
+   	cmp bl,'&'
+    	JE  displayInform1 
+	cmp al,bl
+    	JNE next
+    	jmp validate 	
+next:
+    	mov BL,[si] 
+	inc si
+	cmp BL,'#'
+    	JNE NEXT
+	mov BL,[si] 
+	cmp BL,'$'
+	JNE readId
+	jmp ErrorId
+ErrorId:
+    	mov ah,09h
+    	lea dx,errorMsg		;error Messages FOR WRONG ID
+    	int 21h
+	CALL NEWLINE
+	JMP promptId
+
+displayInform1:
+	CALL changeBLUE
+	CALL BORDER      	;display the staff infor base on staff id
+	CALL printStaffID
+displayInform2:
+    	mov bl,[si] 
+	cmp bl,','
+	JE  DISPLAYLINE
+    	cmp bl,'#'
+   	JE  CHECKSTAFFID1
+    	mov ah,02h
+    	mov dl,bl
+    	int 21h
+    	inc si
+    	jmp displayInform2
+DISPLAYLINE: 			;if scan file found that ',' then print a new line
+	CALL NEWLINE
+	INC SI
+	JMP displayInform2
+CHECKSTAFFID1:
+	CMP countHtime,1
+	JG  searchStaffId
+	JMP confirmStaffId
+confirmStaffId:
+	CALL BORDER
+	MOV AH,09H
+	LEA DX,confirmStaff
+	INT 21H
+	
+	MOV AH,01H
+	MOV DL,confirmSI
+	INT 21H
+	
+	CMP AL,YES
+   	JE  KeyInTotalWH	;YES - let user key in total working hours
+    	CMP AL,NO
+   	JNE ERRCONFIRMSI  	;IF NO - back to key in staff id
+   	JMP promptId
+searchStaffId:
+	CALL CompareId
+	jmp  confirmStaffId
+ERRCONFIRMSI:
+	MOV AH,09H
+	LEA DX,ERRYESNO
+	INT 21H
+	JMP confirmStaffId
+
+KeyInTotalWH:
+	CALL storeStaffId
+	CALL changeBLUE
+BACKWH:	CALL NEWLINE
+	MOV AH,09H		;get total work hours
+	LEA DX,PROMPTWH
+	INT 21H
+	
+	MOV CX,3
+	MOV SI,0
+	CALL WORKHOURS
+	mov ah,09h
+	lea dx,hours
+	int 21h	
+
+	CMP TOTALWH,0		;check the total work hours is in the rang 0 to 300 hours
+	JL  XRANGEWH
+	CMP TOTALWH,300
+	JG  XRANGEWH
+	JMP displayWH
+JB1: jmp LOGINBACK
+XRANGEWH:
+	MOV AH,09H		;DISPALY ERROR MESSAGES when total working hours out of range
+	LEA DX,WRTOTALWH
+	INT 21H
+	JMP BACKWH
+displayWH:
+	CALL NEWLINE
+	MOV AH,09H		;display Total Working Hours for the staff
+	LEA DX,DISTOTALWH	
+	INT 21H
+	CALL DISPLAYTOTALWH
+	JMP CONFIRMWH
+	
+CONFIRMWH:
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,confirmTotalWH
+	int 21h
+
+	MOV AH,01H
+	MOV DL,confirmSI
+	INT 21H
+	
+	CMP AL,YES
+   	JE  backToLogin		;YES - go ask return login or not
+    	CMP AL,NO
+   	JE  KeyInTotalWH	;IF NO - back to key in staff id
+   	JMP ERRCONFIRMWH
+
+backToLogin:
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,goBackLogIn
+	int 21h
+
+	MOV AH,01H
+	MOV DL,confirmGoBack
+	INT 21H
+	
+	CMP AL,YES
+   	JE  goOT		;YES - go OT
+    	CMP AL,NO
+   	JE  JB1			;IF NO - back to Log In
+   	JMP LOGINERR
+LOGINERR:
+	call printErrorMessage
+	JMP backToLogin
+ERRCONFIRMWH:
+	call printErrorMessage
+	JMP CONFIRMWH
+goOT:
+	MOV AH,09H
+	LEA DX,exitSI
+	INT 21H
+OT:	
+	CALL changeBLUE
+	mov days,0
+    	mov loopCount[2],3
+    	mov calculate,1
+	call NEWLINE
+	call displayWelcome
+    	jmp  getWorkDays
+
+getWorkDays:
+    	call NEWLINE
+    	lea dx, promptWorkDays
+    	int 21h
+
+    	mov cx, 2
+    	mov si, 0
+    	call getUserInput
+
+    	mov al, digit[0]	;change convert input from 2 data to 1 data
+    	mov dl, 10
+    	mul dl
+    	add al, digit[1]
+    	cmp al, 29
+    	ja  highDaysErr
+    	mov workDays, al
+
+confirmDay:
+	call NEWLINE
+    	mov ah, 9h
+    	lea dx, correct_Days
+    	int 21h
+
+    	mov ah, 01h
+    	int 21h
+    	cmp al, YES
+    	je  displayTotalOT
+    	cmp al, NO
+   	jne errYesNo_confirm
+    	dec si
+    	mov workDays, 0
+    	jmp getWorkDays
+
+displayTotalOT:
+    	call NEWLINE		
+	MOV AH,09H
+    	lea dx, display_OTHours
+    	int 21h
+
+    	mov ah, 0
+   	mov al, workDays
+   	mov bx, 9
+    	mul bx
+    	mov dx,TOTALWH	;TOTALWH = 300
+    	sub dx, ax
+	cmp dh,255
+    	je toZero
+	cmp dh,254
+	je toZero
+	jmp netDays
+toZero:
+   	mov days,0h
+    	call convertDecimal
+    	call returnOrNot
+    	jmp exitOT
+netDays:
+    	mov days,dx
+    	call convertDecimal	;convert to decimal
+    	call returnOrNot
+errYesNo_confirm:
+   	call printErrorMessage
+    	jmp confirmDay
+daysError:
+    	call printErrorDays
+    	jmp getWorkDays
+highDaysErr:
+    	call dateTooHigh
+    	jmp getWorkDays
+exitOT:
+   	call NEWLINE
+    	mov ah, 09h
+    	lea dx,exitOvertime
+    	int 21h
+	JMP GROSSPAY
+
+GROSSPAY:
+	CALL changeBLUE
+	mov TOTALGP,0		;change all value to 0
+	mov HOUR_RATES,0
+	mov OT_RATES,0
+	mov loopCount[3],4
+    	mov calculate,2
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,displayGP
+	INT 21H
+	JMP AGAIN
+AGAIN:	
+	CALL NEWLINE	
+	MOV AH,09H		;GET HOUR RATE
+	LEA DX,PROMPTHOURRATE
+	INT 21H
+
+	MOV CX,2
+	MOV SI,0
+	CALL HOURR 
+	CALL PERDAY
+	CMP HOUR_RATES,0
+	JL  XRANGE1
+	CMP HOUR_RATES,15
+	JG  XRANGE1
+	JMP AGAIN2
+AGAIN2:
+	;GET OT RATE
+	MOV AH,09H
+  	LEA DX,PROMPTOTRATE
+ 	INT 21H
+
+	MOV CX,2
+	MOV SI,0
+	MOV AL,0
+	CALL OTR
+	CALL PERDAY
+	CMP OT_RATES,16
+	JL  XRANGE2
+	CMP OT_RATES,30
+	JG  XRANGE2
+	JMP CONFIRMRATE
+XRANGE1:
+	MOV AH,09H		;DISPALY ERROR MESSAGES when hours rate out of range
+	LEA DX,WRGRATE
+	INT 21H
+	JMP AGAIN
+XRANGE2:
+	MOV AH,09H		;DISPALY ERROR MESSAGES when ot rate out of range
+	LEA DX,WRGRATE2
+	INT 21H
+	CALL NEWLINE
+	JMP AGAIN2
+
+CONFIRMRATE:
+	CALL NEWLINE
+    	MOV AH,09H
+    	LEA DX,CONFIRM_RATE 	;CONFIRMATION OF BOTH RATES
+    	INT 21H
+
+   	MOV AH,01H
+    	INT 21H
+    	CMP AL,YES
+   	JE  GROSSPAYCAL	 
+    	CMP AL,NO
+   	JNE ERRCONFIRMRATE
+   	JMP AGAIN
+ERRCONFIRMRATE:
+	CALL printErrorMessage
+	JMP CONFIRMRATE
+GROSSPAYCAL:
+	CALL NEWLINE
+	MOV AX,0
+	MOV BX,0
+    	MOV AX,TOTALWH		;TOTALWHPAY = TOTALWH - OT(DAYS) x HOURS RATES 
+	SUB AX,days       	;EG,TOTALWH = 300(12C H)  300-39 = 261 (105 H)
+	MOV BL,HOUR_RATES
+	MUL BX			;261 x 20 = 5220 105 H X 14 H = 1464 H 5220
+	MOV TOTALWHPAY,AX	;TOTALWH = 1464 H
+	
+	MOV AX,0		;TOTAL OT = OT X OT_RATES
+	MOV AX,days   		;DAYS = OTHOUR = 39 = 27H
+	MOV BL,OT_RATES	
+	MUL BX			;39 X 20 = 780 27 H X 14 H = 030C H
+	MOV TOTALOTPAY,AX	;TOTALOTPAY = 030C H
+
+	MOV AX,0		;TOTALGROSSPAY = TOTALWHPAY + TOTALOTPAY
+	MOV AX,TOTALWHPAY	
+	ADD AX,TOTALOTPAY	
+	MOV TOTALGP,AX  	;TO STORE THE TOTAL GROSS PAY 
+
+	MOV AH,09H		;DISPLAY GROSS PAY
+	LEA DX,DISGP
+	INT 21H
+	
+	MOV AX,0
+	MOV DX,0
+	MOV AX,TOTALGP
+	MOV BX,100	
+	DIV BX			;AX=3800/100 AL=0038 D DX=0000 D
+	MOV BL,10
+	DIV BL			;AL=38/10= 24 H AL=03 AH=08 DX=0000 
+	MOV TOTALGPDIS[0],AL
+	MOV TOTALGPDIS[1],AH
+	MOV TOTALGPDIS[2],DL  
+	MOV TOTALGPDIS[3],DH
+	
+	MOV AH,02H
+	MOV DL,TOTALGPDIS[0]	;DISPLAY NUMBER 1 DIGIT
+	ADD DL,30H
+	INT 21H
+	MOV DL,TOTALGPDIS[1]	;DISPLAY NUMBER 2 DIGIT
+	ADD DL,30H
+	INT 21H
+	
+	MOV AX,0
+	MOV AL,TOTALGPDIS[2] 	;AX = 0060
+	DIV BL    		;AL=00 AH=00
+	MOV TOTALGPDIS[2],AL	;AL=00
+	MOV TOTALGPDIS[3],AH	;AH=00
+
+	MOV AH,02H
+	MOV DL,TOTALGPDIS[2]	;DISPLAY NUMBER 3 DIGIT
+	ADD DL,30H
+	INT 21H
+	MOV DL,TOTALGPDIS[3]	;DISPLAY NUMBER 4 DIGIT
+	ADD DL,30H
+	INT 21H
+
+	MOV AH,09H
+	LEA DX,DECIMAL
+	INT 21H
+    	call returnOrNot
+exitGross:
+        MOV AH,09H
+	LEA DX,exitGP
+	INT 21H
+	JMP BONUS
+BONUS:
+	CALL changeBLUE
+	MOV TOTALBN,0		;change value to 0
+	mov TOTALBNDEC,0
+	mov BONUS_RATE,0
+	mov BONUS_RATEDEC,0
+    	mov loopCount[4],5
+    	mov calculate,3
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,displayBN
+	INT 21H
+
+BNCONFIRM:
+	MOV AH,09H		;DISPLAY GROSS PAY CONFIRM 
+	LEA DX,BONUS_GET
+	INT 21H
+	
+	MOV AH,01H
+	INT 21H
+	CMP AL,YES
+	JE  GETBONUS
+	CMP AL,NO
+	JNE ERRBN	 	;IF NOT BONUS KEY IN
+	JMP BONUSCAL
+GETBONUS:	
+	CALL NEWLINE	
+	MOV AH,09H		;GET BONUS RATE
+	LEA DX,PROMPTBONUSRATE	
+	INT 21H
+
+	MOV CX,2		;SET LOOP 2 TIMES TO GET BONUS RATE
+	MOV SI,0
+	CALL BONUSL
+	
+	mov ah,02h
+	mov dl,percent
+	int 21h
+
+	CMP BONUS_RATE,0	;CHECK BONUS RATE
+	JL  XBNRANGE
+	CMP BONUS_RATE,20
+	JG  XBNRANGE
+	CMP BONUS_RATEDEC,0
+	JL  XBNRANGE
+	CMP BONUS_RATEDEC,99
+	JG  XBNRANGE
+	JMP CONFIRMRATEBN
+XBNRANGE:
+	MOV AH,09H		;DISPALY ERROR MESSAGES WHEN BONUS RATE OUT OF RANGE
+	LEA DX,WRBONUSRATE
+	INT 21H
+BACKBONUS:
+	JMP GETBONUS
+ERRBN:
+	CALL printErrorMessage
+	JMP BNCONFIRM
+
+CONFIRMRATEBN:
+	CALL NEWLINE
+    	MOV AH,09H		;CONFIRMATION BONUS RATE
+    	LEA DX,CONFIRM_BNRATE 
+    	INT 21H
+
+   	MOV AH,01H
+    	INT 21H
+    	CMP AL,YES
+   	JE  BONUSCAL	 	;YES - CAL BONUS
+    	CMP AL,NO
+   	JE  BACKBONUS		;IF NO - BACK START OF BONUS MODULE
+   	JMP ERRCONFIRMBONUS
+
+ERRCONFIRMBONUS:
+	CALL printErrorMessage
+	JMP  CONFIRMRATEBN
+
+BONUSCAL:
+	MOV AX,0
+	MOV DX,0
+	MOV BX,0
+    	MOV AX,TOTALGP		;GET BONUS = TOTALGROSSPAY X BONUS RATE
+	MOV BX,100		;AL = 1248 H 4680(TOTAL GP)
+	DIV BX       		;AX = 4681 (1249 H) / 100 = 0048 (2E H) DX=0081 (51H)
+	MUL BONUS_RATE		;RM46 X 18 = RM 828 (033C H)
+	MOV TOTALBN,AX 		;TOTAL BONUS PAY = 828
+	MOV AX,0
+	MOV AX,DX
+	MOV DX,0
+	MUL BONUS_RATE		;81 X 18 = 1458 AX = 5B2 H
+	DIV BX 			    ;AL = 14 DL = 58
+	ADD TOTALBN,AX		;TOTALBN = 842
+	MOV TOTALBNDEC,DX	;TOTALBNDEC = 58
+	;-----------------------------------------------------------------			
+	MOV AX,0 
+	MOV DX,0		    ;COUNT TOTAL BONUS DECIMAL NUMBER
+	MOV AX,TOTALGP		;AL = 4681 1248 H(TOTAL GP)
+	DIV BX       		;AL = 4681 (1248 H) / 100 = 46.81 (26 H) dx= 81
+	mov tempTOTALBNDEC,dl	;dl = 81 D (51 D)
+	MOV DX,0
+	MUL BONUS_RATEDEC	;RM46 X 28(0.28) = RM 1288 (508 H)
+	MOV BX,100 
+	DIV BX			    ;1288/100 = 12.88 AX=0012D (000C H) DX=0088D (0058 H)
+	ADD AX,TOTALBN 		;TOTALBN + 12 = RM 854
+	MOV TOTALBN,AX		
+	MOV AX,0
+	MOV AX,DX
+	MOV DX,0
+	ADD AX,TOTALBNDEC	;58 + 88 = 146 (92 H)
+	MOV BX,100
+	DIV BX			    ;AX=0001 D DX= 0046 D
+	ADD TOTALBN,AX		;854 + 1 = 855
+	MOV TOTALBNDEC,0    
+	MOV AX,0
+	MOV AX,DX
+	MOV BX,10
+	MUL BX
+	MOV TOTALBNDEC,AX	;TOTAL BN DEC = 460 ( 2E )
+	MOV AX,0
+	MOV DX,0
+	MOV AL,tempTOTALBNDEC	;81 
+	MUL BONUS_RATEDEC	;0.81 x 0.28 = 0.2268
+	DIV BX     		    ;AX = 0226 DX = 0008		
+	ADD TOTALBNDEC,AX	;460 + 226 = 686   
+	MOV tempTOTALBNDEC,dl 
+	MOV AX,0
+	MOV AX,TOTALBNDEC        
+    	MOV DX,0 
+    	MOV BX,1000         ;AX = 0000 DX =0682
+   	DIV BX
+    	ADD TOTALBN,AX
+    	MOV TOTALBNDEC,DX   
+    	CMP tempTOTALBNDEC,5
+	JGE PUSH1  
+	JMP DISPLAYTOTALBN
+PUSH1:
+	MOV AX,0
+	MOV DX,0
+	MOV AX,TOTALBNDEC	;68
+	ADD AX,1		;68 + 1 = 67
+	MOV BX,1000		;EG IF 99 + 1 = 100 100/100
+	DIV BX
+	ADD TOTALBN,AX
+	MOV TOTALBNDEC,0
+	MOV TOTALBNDEC,DX  		
+	JMP DISPLAYTOTALBN
+DISPLAYTOTALBN:
+	MOV AX,0
+	MOV DX,0
+	MOV AX,TOTALBN		;TOTAL BONUS PAY = 760 (02F8 H)
+	MOV BX,100		    ;694/100 = 6.94(AH = 00 AL = 06 DL= 94 D)
+	DIV BX
+	MOV BL,10
+	DIV BL			    ;AL = 00 H AH=06 H DL=94(53 H) DH=00 H
+	MOV TOTALBNDIS[0],AL	
+	MOV TOTALBNDIS[1],AH	
+	MOV TOTALBNDIS[2],DL
+	MOV TOTALBNDIS[3],DH
+
+	MOV AH,09H
+	LEA DX,DISBN
+	INT 21H
+	
+	;DISPLAY NUMBER 1 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[0]
+	ADD DL,30H
+	INT 21H
+
+	;DISPLAY NUMBER 2 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[1]
+	ADD DL,30H
+	INT 21H
+	
+	MOV AX,0
+	MOV AL,TOTALBNDIS[2] 	;AX = 0094
+	DIV BL    		        ;94/10= 9.4 AL=09 AH=04
+	MOV TOTALBNDIS[2],AL	;AL=09
+	MOV TOTALBNDIS[3],AH	;AH=04
+	
+
+	;DISPLAY NUMBER 3 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[2]
+	ADD DL,30H
+	INT 21H
+
+	;DISPLAY NUMBER 4 DIGIT
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[3]
+	ADD DL,30H
+	INT 21H
+
+	;DISPLAY '.'
+	MOV AH,02H
+	MOV DL,RATESPOINT
+	INT 21H
+
+	;DISPLAY DECIMAL OF TOTAL BONUS
+	MOV AX,0      
+	MOV DX,0
+	MOV AX,TOTALBNDEC   ;682
+	MOV BL,100
+	DIV BX		        ;BL =100 682/100=6.82 AL= 06,AH =82
+	MOV TOTALBNDIS[4],AL
+	MOV TOTALBNDIS[5],DL
+	
+	;DISPLAY DECIMAL NUMBER OF TOTAL BONUS
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[4]
+	ADD DL,30H
+	INT 21H     
+	
+	MOV AX,0
+	MOV AL,TOTALBNDIS[5] 	;AX = 0094   
+	MOV BL,10
+	DIV BL    		        ;94/10= 9.4 AL=09 AH=04
+	MOV TOTALBNDIS[5],AL	;AL=09
+	MOV TOTALBNDIS[6],AH	;AH=04
+
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[5]
+	ADD DL,30H
+	INT 21H	
+
+	MOV AH,02H
+	MOV DL,TOTALBNDIS[6]
+	ADD DL,30H
+	INT 21H
+	call returnOrNot
+exitBonus:
+	CALL NEWLINE
+	MOV AH,09H
+	LEA DX,EXITBN
+	INT 21H
+	JMP NETPAYSTART
+
+NETPAYSTART:
+	CALL changeBLUE
+	mov netPayInt[0],0
+	mov netPayInt[1],0
+	mov netPayInt[2],0
+	mov netPayInt[3],0
+	mov netPayDec[0],0
+	mov netPayDec[1],0
+	mov netPayDec[2],0
+	mov netPayDec[3],0
+	MOV tempNetPayInt,0	 
+    	mov calculate,4
+	CALL NEWLINE
+	call displayWelcomeNet
+    	jmp yesNoAmount
+yesNoAmount:
+	CALL NEWLINE
+    	mov count,3
+    	mov ah, 09h
+    	lea dx, askDeduct
+    	int 21h
+
+    	mov ah, 01h		; Read user input
+   	int 21h
+    	call yesNo1
+    	jmp inputDeduct
+inputDeduct:
+	CALL NEWLINE
+    	mov ah, 09h		; Ask for deduction amount
+    	lea dx, enterDeduct
+    	int 21h
+
+    	mov count,1
+    	mov cx, 4      		; Allow up to 4 characters for input
+    	mov si, 0
+
+    	call readDeduct		; Read and validate deduction amount
+    	mov ax,temp1
+    	mov tempDeductInt,ax
+    	mov bx,temp2
+    	mov tempDeductDec,bx
+    	mov temp1,0h
+    	mov temp2,0h
+    	jmp inputAllow
+
+inputAllow:
+	CALL NEWLINE
+   	mov ah, 09h		; Ask for allowance amount
+    	lea dx, enterAllow
+    	int 21h
+
+    	mov count,2
+    	mov cx, 4      		; Allow up to 4 characters for input
+    	mov si, 0
+
+    	call readDeduct		; Read and validate deduction amount
+    	mov ax,temp1
+    	mov tempAllowInt,ax
+    	mov bx,temp2
+    	mov tempAllowDec,bx
+    	mov temp1,0h
+    	mov temp2,0h
+    	jmp confirmGua
+
+confirmGua:
+	CALL NEWLINE
+    	mov count,4
+   	mov ah,09h
+    	lea dx,confirmAmount
+    	int 21h
+    	call confirmMoney
+
+calcInt:
+    	call netpay		 ;display net pay
+    	mov ax,TOTALGP	 	;Gross Pay
+    	mov bx,tempAllowInt  	;Allowance
+    	add ax,bx
+    	mov bx,0
+    	mov bx,tempDeductInt 	;Deduction
+    	sub ax,bx
+    	mov bx,TOTALBN	 	;Bonus
+    	add ax,bx
+    	mov tempNetPayInt,ax
+    	call calcDec
+    	ret
+
+calcDec:
+    	mov ax,0
+   	mov ax,TOTALBNDEC 	;decimal bonus
+    	mov bx,tempDeductDec	;560
+    	mov dx,tempAllowDec		;999
+    	add ax,dx
+    	sub ax,bx			;total=1327 52Fh
+	mov netPayDecStore,ax
+    	xor dx,dx
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
+    	call convertIntDecimal
+    	ret
+convertIntDecimal:
+    	mov ax,0
+    	mov dx,0
+    	mov bx,0
+    	mov bl,netPayDec[0]		
+    	add tempNetPayInt,bx	
+    	mov ax,tempNetPayInt  	;ax=15520,3CA0H
+    	mov bx,1000		
+    	div bx		;15520/1000: ax=15,dx=520
+    	mov bl,10
+    	div bl		;15/10: al=01,ah=05
+    	mov netPayInt[0],al		;al=01
+    	mov netPayInt[1],ah		;ah=05
+    	mov ax,dx		;ax=520
+    	mov dx,0
+    	mov bx,100
+    	div bx		;ax=5,dx=20
+    	mov netPayInt[2],dl		;ah=20
+    	mov netPayInt[3],dh		
+    	mov netPayInt[4],al		;al=05
+
+    	;DISPLAY NUMBER 1 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[0]		;1
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 2 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[1]		;5
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 3 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[4]		;6
+    	ADD DL,30H
+    	INT 21H
+
+    	MOV AX,0
+    	MOV AL,netPayInt[2]		;20
+    	mov bh,0
+    	mov bl,10
+    	DIV BL    			;20/10,al=2,ah=0
+    	MOV netPayInt[2],AL		;2
+    	MOV netPayInt[3],AH		;0
+	
+    	;DISPLAY NUMBER 4 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[2]		;2
+    	ADD DL,30H
+    	INT 21H
+
+    	MOV AH,02H			;DISPLAY NUMBER 5 DIGIT
+    	MOV DL,netPayInt[3]		;0
+    	ADD DL,30H
+    	INT 21H
+    	call convertDecDecimal
+    	ret
+
+convertDecDecimal:
+     	mov ah,02h
+     	mov dl,'.'
+     	int 21h
+
+    	MOV AH,02H
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
+	ADD DL,30H
+	INT 21H
+	call returnOrNot
+continuePayrolls:
+	MOV AH,09H
+     	LEA DX,exitNetPay 
+     	INT 21H
+	call storeNetPay
+	call calculateNextStaff
+goOut:
+     	JMP printFinalReport
+printFinalReport:
+	CALL changeMAGENTA
+	call startReport
+	jmp exit        
+exit:	           
+        MOV AH,09H
+	LEA DX,ENDPAGE
+	INT 21H 
+     	mov ah,4ch
+        int 21h
+jumper1: jmp calcInt
+jumper2: jmp yesNoAmount
+jumper3: jmp inputDeduct
+jumper4: jmp inputAllow
+jumper5: jmp confirmGua
+jumper6: jmp calculateNextStaff
+jumper7: jmp goOut
+main endp
+;NET PAY ----------------------------------------
+yesNo1:
+    	cmp al, YES		
+    	je check1
+    	cmp al, NO
+    	je jumper1
+    	jmp err_YesNo
+    	ret
+yesNo2:
+    	cmp al, YES
+    	je check1
+    	cmp al, NO
+    	je jumper2
+    	jmp err_YesNo
+    	ret
+yesNo3:
+    	cmp al, NO
+    	je  printFinalReport
+	cmp al, YES
+    	jne err_YesNo
+	jmp STAFFBACKC
+    	ret
+
+storeNetPay:
+	MOV AX,0
+	MOV BX,0
+	MOV BX,countNet		;bx=0
+	MOV AX,tempNetPayInt
+	MOV netPayIntArr[BX],AX
+	MOV AX,netPayIntArr[BX]
+	MOV AX,0
+	MOV AX,netPayDecStore
+	MOV netPayDecArr[BX],AX
+	add countnet,2
+	ret
+check1:
+    	mov al,count
+    	cmp al,1
+    	je jumper3
+    	cmp al,2
+    	je jumper4
+    	cmp al,3
+    	je jumper3
+    	cmp al,4
+    	je jumper1
+	cmp al,5
+	je jumper7
+    	ret
+check2:
+    	mov al,count
+    	cmp al,3
+    	je jumper2
+    	cmp al,4
+    	je jumper5
+	cmp al,5
+    	je jumper6
+	ret
+err_YesNo:
+    	call printErrorMessage
+    	call check2
+
+displayWelcomeNet:
+    	mov ah, 09h
+    	lea dx, displayNetPay
+    	int 21h
+    	ret
+
+readDeduct:
+    	mov ah, 01h        
+    	int 21h
+    	call chkErr		; Check if the input is a valid digit ('0' to '9')
+    	jmp combineInt		; If it's a valid digit, store it and proceed
+    	ret
+
+chkErr:
+    	cmp al, 13
+    	je errorEnter
+    	cmp al, '0'
+    	jl errMsg
+    	cmp al, '9'
+    	jg errMsg
+    	ret
+combineInt:
+    	sub al, 30h           	; Convert ASCII digit to numeric value
+    	mov ah, 0             	; Clear the upper 8 bits of ax
+    	mov bx, integer[si]   	; Load the multiplier from the integer array
+
+    	mul bx			; Multiply ax by the value in bx (multiplier from the integer array)
+    	add temp1, ax	      	; Add the result to temp
+    	add si,2h 	    	; Move to the next multiplier (e.g., 100, 10, 1)
+    	dec cx	       		; Check if we've reached the maximum allowed input length (4)
+    	jz addDecimal  		; If so, terminate the input
+
+    	jmp readDeduct
+addDecimal:
+    	mov ah, 02h
+    	mov dl, '.'
+    	int 21h
+   	mov si, offset decimal2
+    	mov cx, 3
+
+readDecimal:
+    	mov ah, 01h
+    	int 21h
+
+    	call chkErr
+
+    	sub al, 30h
+    	xor ah, ah
+    	mov bx,0
+    	mov bl, [si]
+    	mul bx
+    	add temp2, ax
+    	inc si
+    	dec cx
+    	jnz readDecimal  ; Continue reading decimal digits if cx is not zero
+    	jmp readDone  	 ; Only exit when both decimal digits are read
+
+readDone:
+    	ret
+
+errMsg:
+    	mov temp1,0h
+    	mov temp2,0h
+    	; Display error message
+    	mov ah, 09h
+    	lea dx, inputErr
+    	int 21h
+    	call NewLine
+    	call check1
+
+errorEnter:
+    	mov temp1,0h
+    	mov temp2,0h
+    	mov ah, 09h
+    	lea dx, enterErr
+    	int 21h
+    	call NewLine
+    	call check1
+
+confirmMoney:
+    	mov ah,01h
+    	int 21h
+    	call yesNo2
+    	call check1
+
+netpay:
+	CALL NEWLINE
+    	mov ah,09h
+    	lea dx,displayTotalNet
+    	int 21h
+    	ret
+calculateNextStaff:
+	mov count,5
+    	call NewLine
+	mov ah,09h
+	lea dx,nextStaff
+	int 21h
+	mov ah,01h
+	int 21h
+	call yesNo3
+	ret
+;-------------------------------------------------------------------------------
+changeBLUE:
+	MOV AH,00	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
+        MOV AL,02H
+        INT 10H
+	
+        MOV ax, 0600h
+        MOV BH, 1FH	;BLUE BG AND WHITE FONT
+        MOV cx, 0000h
+        MOV dx, 404fh    
+        INT 10H
+	RET
+changeGREEN:
+	MOV AH,00	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
+        MOV AL,02H
+        INT 10H
+	
+        MOV ax, 0600h
+        MOV BH, 2FH	;GREEN BG AND WHITE FONT
+        MOV cx, 0000h
+        MOV dx, 304fh    
+        INT 10H
+	RET
+changeCyan:
+	MOV AH,00	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
+        MOV AL,02H
+        INT 10H
+	
+        MOV ax, 0600h
+        MOV BH, 3FH	;BLUE BG AND WHITE FONT
+        MOV cx, 0000h
+        MOV dx, 404fh    
+        INT 10H
+	RET
+changeMAGENTA:
+	MOV AH,00	;CHANGE SCREEN MODE AND COLOR OF BG AND FC 
+        MOV AL,02H
+        INT 10H
+	
+        MOV ax, 0600h
+        MOV BH, 5FH	;MAGENTA BG AND WHITE FONT
+        MOV cx, 0000h
+        MOV dx, 184fh    
+        INT 10H
+	RET
+;-------------------------------------------------------------------------------
+choose:				;choose return to where
+    	add calculate,1		;if calc=1+1=2
+   	mov dx,calculate
+    	mov si,0
+    	mov cx,dx			;loop 2 times
+loopWantedPlaces:
+    	mov ah,0h
+    	mov al,loopCount[si]	;loopCount[0]=1
+    	mov bl,select		;select=2
+    	cmp al,bl
+    	je GoesWantedPlaces
+    	inc si			;loopCount[1]=2
+loop loopWantedPlaces
+    	sub calculate,1
+    	jmp errMsg1		
+    	ret	
+JL1: jmp LoginBack			;JUMPER TO JUMP BACK THE MODULE 
+JL2: jmp STAFFBACK
+JL3: jmp OT
+JL4: jmp grossPay
+JL5: jmp bonus
+JL6: jmp netPay
+jump1: jmp exitOT
+jump2: jmp exitGross
+jump3: jmp exitBonus
+jump4: jmp continuePayrolls
+returnOrNot:
+	call NEWLINE
+    	mov ah,09h
+    	lea dx,askReturn
+    	int 21h
+
+    	mov ah,01h
+    	int 21h
+    	cmp al,'y'
+    	je returnWhere
+    	cmp al,'n'
+    	je compareNo
+    	mov ah,09h
+    	lea dx,errYesNo
+    	int 21h
+    	call NewLine
+    	jmp returnOrNot
+
+GoesWantedPlaces:
+    	cmp select,1
+    	je JL1
+    	cmp select,2
+    	je JL2
+    	cmp select,3
+    	je JL3
+    	cmp select,4
+   	je JL4
+    	cmp select,5
+    	je JL5
+    	jmp errMsg	
+
+compareNo:
+    	cmp calculate,1	 ;not return compare calculate
+    	je jump1
+    	cmp calculate,2
+    	je jump2
+    	cmp calculate,3
+    	je jump3
+    	cmp calculate,4
+    	je jump4
+
+returnWhere:
+    	cmp calculate,1
+    	je determine1
+    	cmp calculate,2
+    	je determine2
+    	cmp calculate,3
+    	je determine3
+    	cmp calculate,4
+    	je determine4
+
+determine1:
+    	lea si,otReturn 
+    jmp loopReturn
+
+determine2:
+    	lea si,grossPayReturn
+    jmp loopReturn
+
+determine3:
+    	lea si,bonusReturn
+    jmp loopReturn
+
+determine4:
+    	lea si,netPayReturn 
+    jmp loopReturn
+
+loopReturn:
+	CALL changeGREEN
+    	mov ah,09h
+    	lea dx,returnList1
+    	int 21h
+    	mov cx,1
+returnBah:
+    	mov ah,09h
+    	lea dx,[si]
+    	int 21h
+    	inc si
+loop returnBah
+   	mov ah,09h
+    	lea dx,returnList3
+    	int 21h
+    	jmp readReturnSelect
+    
+readReturnSelect:
+    	mov ah,09h
+    	lea dx,returnSelect
+    	int 21h
+    	jmp selectWhat
+
+selectWhat:
+    	mov ah,01h
+    	int 21h
+    	sub al,30h
+    	mov select,al
+    	call choose
+    	ret
+errMsg1:
+    	mov ah,09h
+    	lea dx,error
+    	int 21h
+    	jmp readReturnSelect  
+;-------------------------------------------------------------------------------
+BORDER:
+	MOV AH,09H
+	LEA DX,LINE
+	INT 21H
+	RET
+NEWLINE:
+	MOV AH,09
+	LEA DX,NLINE
+	INT 21H
+	RET
+;Staff Information-------------------------------------------------------------------------------
+printStaffID:
+	mov ah,09h
+	lea dx,ID
+	int 21h
+	mov di,0
+	mov cx,7
+disID:
+	mov ah,02h
+	mov dl,STAFFID[di]
+	int 21h
+	inc di
+	loop disID
+	CALL NEWLINE
+	ret
+WORKHOURS:
+	MOV AH,01H
+	INT 21H
+	SUB AL,30H
+	MOV TOTALWHTEMP[SI],AL
+	INC SI
+LOOP WORKHOURS
+	;CHANGE INPUT
+    	MOV AL,TOTALWHTEMP[0]
+    	MOV DL,100
+    	MUL DL
+	MOV TOTALWH,AX
+	MOV AL,TOTALWHTEMP[1]
+	MOV DL,10
+	MUL DL
+    	ADD AL,TOTALWHTEMP[2]
+	ADD TOTALWH,AX
+	RET
+
+GODAYSERROR:
+	JMP daysError
+
+DISPLAYTOTALWH:
+	MOV AX,0 
+	MOV DX,0
+	MOV AX,TOTALWH
+	MOV BX,100
+	DIV BX
+	MOV DISWH[0],AL
+	MOV DISWH[1],DL
+	
+	MOV AH,02H	;DISPLAY 1 DIGIT
+	MOV DL,DISWH[0]
+	ADD DL,30H
+	INT 21H
+     
+    	MOV AX,0
+	MOV AL,DISWH[1]
+	MOV BL,10
+	DIV BL
+	MOV DISWH[1],AL
+	MOV DISWH[2],AH
+
+	MOV AH,02H	;DISPLAY 2 DIGIT
+	MOV DL,DISWH[1]
+	ADD DL,30H
+	INT 21H
+	MOV DL,DISWH[2]	;DISPLAY 3 DIGIT
+	ADD DL,30H
+	INT 21H
+
+	mov ah,09h
+	lea dx,hours
+	int 21h	
+	RET
+;OT-------------------------------------------------------------------------------
+getUserInput:
+    	mov ah, 01h		;al = 1, al = 5
+   	int 21h
+
+    	cmp al, '0'		; Check if the input is a valid digit ('0' to '9')
+    	jl GODAYSERROR
+    	cmp al, '9'
+    	jg GODAYSERROR
+
+   	mov digit[si], al	; If it's a valid digit, store it and proceed
+    	sub digit[si], 30h
+    	inc si
+   	loop getUserInput
+    	call displayDays
+    	ret
+
+convertDecimal:
+    	xor ax,ax
+    	xor dx,dx
+    	mov ax,days
+    	MOV BX,100
+    	DIV BX
+    	MOV BL,10
+    	DIV BL
+    	MOV total_overtime [0],AL
+    	MOV total_overtime [1],AH
+    	MOV total_overtime [2],DL  	;60
+    	MOV total_overtime [3],DH
+
+    	MOV AH,02H
+    	MOV DL,total_overtime [0]	;DISPLAY NUMBER 1 DIGIT
+    	ADD DL,30H
+    	INT 21H
+    	MOV DL,total_overtime [1]	;DISPLAY NUMBER 2 DIGIT
+    	ADD DL,30H
+    	INT 21H
+	
+    	MOV AX,0
+    	MOV AL,total_overtime [2] 	;AX = 0060
+    	DIV BL    			;AL=00 AH=00
+    	MOV total_overtime [2],AL	;AL=00
+   	MOV total_overtime [3],AH	;AH=00
+	
+    	MOV AH,02H
+    	MOV DL,total_overtime [2]	;DISPLAY NUMBER 3 DIGIT
+    	ADD DL,30H
+    	INT 21H
+    	MOV DL,total_overtime [3]	;DISPLAY NUMBER 4 DIGIT
+    	ADD DL,30H
+    	INT 21H
+
+    	call displayHours
+    	ret
+
+displayDays:
+    	mov ah,09h
+    	lea dx,wantDays
+    	int 21h
+    	ret
+
+displayHours:
+    	mov ah,09h
+    	lea dx,hours
+    	int 21h
+    	ret
+
+displayWelcome:
+    	mov ah, 09h
+    	lea dx, displayOvertime
+    	int 21h
+    	ret 
+
+printErrorDays:
+    	mov ah, 09h
+    	lea dx, errDays
+    	int 21h
+    	ret
+
+printErrorMessage:
+	call NEWLINE
+    	mov ah, 09h
+    	lea dx, ERRYESNO
+    	int 21h
+    	ret
+
+dateTooHigh:
+    	mov ah, 09h
+    	lea dx, errorDays 
+    	int 21h
+    	ret
+;GROSS PAY ---------------------------------------------------------------------
+HOURR:
+	MOV AH,01H			;GET HOURS RATE FUNCTION
+	INT 21H
+	SUB AL,30H	
+	MOV HOURRATE[SI],AL
+	INC SI
+   LOOP HOURR
+
+    	MOV AL, HOURRATE[0]		;CHANGE INPUT
+    	MOV DL, 10
+    	MUL DL
+    	ADD AL, HOURRATE[1]
+    	MOV HOUR_RATES, AL
+	RET
+
+OTR:
+	MOV AH,01H			;GET OT RATE FUNCTION
+	INT 21H
+	SUB AL,30H
+	MOV OTRATE[SI],AL
+	INC SI
+   LOOP OTR
+	
+	;VALIDATE
+	MOV AL, OTRATE[0]
+    	MOV DL, 10
+    	MUL DL
+    	ADD AL, OTRATE[1]
+    	MOV OT_RATES, AL
+	RET
+PERDAY:
+	MOV AH,09H
+	LEA DX,perDays
+	int 21h
+	ret
+;BONUS-------------------------------------------------------------------------------
+BONUSL:
+	MOV AH,01H		;GET INTEGER PERCENTAGE OF THE BONUS RATE
+	INT 21H
+	SUB AL,30H
+	MOV BONUSRATES[SI],AL
+	INC SI
+   LOOP BONUSL
+
+	MOV AH,02H
+	MOV DL,RATESPOINT
+	INT 21H
+	
+	MOV CX,2
+	MOV SI,0
+
+BONUSDECINPUT:			;GET DECIMAL PERCENTAGE OF THE BONUS RATE
+	MOV AH,01H
+	INT 21H
+	SUB AL,30H
+	MOV BONUSRATEDECI[SI],AL
+	INC SI
+   LOOP BONUSDECINPUT	
+
+	MOV AX,0		; Validate input NO DECIMAL
+	MOV DX,0
+    	MOV AL,BONUSRATES[0]  	;AL = 02H 
+    	MOV BL,10
+    	MUL BL			;AL = 01 X 10 = 10(0A H)
+	ADD AL,BONUSRATES[1]	;AL = 10 + 8 = 18(12 H)
+	MOV BONUS_RATE,AL	;BONUS_RATE = 18 (12 H)
+
+	MOV AX,0		; Validate input NO DECIMAL
+	MOV DX,0
+    	MOV AL,BONUSRATEDECI[0] ;AL = 02H 
+    	MOV BL,10
+    	MUL BL			;AL = 02 X 10 = 20 (14 H)
+	ADD AL,BONUSRATEDECI[1]	;AL = 20 + 8 = 28 (1C H)
+	MOV BONUS_RATEDEC,AL	;BONUS_RATEDEC = 0
+	RET
+;----------------------------------------------
+storeStaffId:
+	MOV BX,countStaffId 
+	MOV SI,0
+	MOV CX,6
+putIN:
+	MOV al,staffId[si]
+	MOV staffIDArr[BX],al
+	inc bx
+	inc si
+   LOOP putIN
+	inc bx
+	MOV staffIDArr[BX],','
+	inc bx
+	MOV countStaffId,bx
+	RET
+
+CompareId:
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0
+	MOV SI,0
+putId:
+	MOV al,staffId[BX]
+	MOV dl,staffIDArr[si]
+	inc bx
+	inc si
+	cmp dl,','
+	je  nextId
+	cmp al,dl
+	je  checkStaffId
+	jmp putId
+nextId:
+	MOV BX,0
+	cmp countCheckStaffId,5
+	JGE duplicateId
+	MOV countCheckStaffId,0
+	MOV BX,0
+	MOV dl,staffIDArr[si]
+	cmp dl,0
+	JNE putId
+	jmp confirmStaffId
+checkStaffId:
+	inc countCheckStaffId
+	jmp putId
+duplicateId:
+	jmp doubleId
+
+startReport:
+	mov ah,09h
+	lea dx,disPayrolls 
+	int 21h
+	mov si,0
+	mov di,0
+	mov cx,countHTime
+report:
+	CALL printAllReport
+	add si,2
+   loop report
+	mov ah,09h
+    	lea dx,disPayrollLast
+	int 21h
+
+	call printOutTotalPayroll   
+	
+	MOV AH,09H
+	LEA DX,dishowmany 
+	INT 21H
+	
+	MOV AH,02H    
+	MOV BX,countHTime
+	MOV DL,BL    
+	ADD DL,30H
+	INT 21H
+	ret
+
+printAllReport:
+    	mov ah,09h
+    	lea dx,disPayrolls1 
+	int 21h   
+
+	call printOutID		;print ID                  
+
+	mov ah,09h
+	lea dx,disPayrollsSpace1    
+	int 21h
+	   
+	mov ah,09h
+	lea dx,disPayrolls2
+	int 21h   
+	
+	mov ah,09h
+	lea dx,disPayrollsSpace2   
+	int 21h               
+	
+ 	CALL printOutNet
+	
+	mov ah,09h
+	lea dx,disPayrollsSpace3
+	int 21h
+	
+	mov ah,09h
+    	lea dx,disPayrolls2 
+	int 21h 
+	ret
+
+printOutID:
+	mov al,staffIDArr[di]
+	inc di
+	cmp al,','
+	je  backprint
+	mov ah,02h
+	mov dl,al
+	int 21h
+	jmp printOutID
+backprint:
+	ret
+
+printOutNet:
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0
+	mov ax,netPayIntArr[si]         ;ax=15520,3CA0H  
+	add totalPayrolls,ax
+	
+    	mov bx,1000		
+    	div bx				;15520/1000: ax=15,dx=520
+    	mov bl,10
+    	div bl				;15/10: al=01,ah=05
+    	mov netPayInt[0],al		;al=01
+    	mov netPayInt[1],ah		;ah=05
+    	mov ax,dx			;ax=520
+    	mov dx,0
+    	mov bx,100
+    	div bx		;ax=5,dx=20
+    	mov netPayInt[2],dl		;ah=20
+    	mov netPayInt[3],dh		
+    	mov netPayInt[4],al		;al=05
+
+    	;DISPLAY NUMBER 1 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[0]		;1
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 2 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[1]		;5
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 3 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[4]		;6
+    	ADD DL,30H
+    	INT 21H
+
+    	MOV AX,0
+    	MOV AL,netPayInt[2]		;20
+    	mov bh,0
+    	mov bl,10
+    	DIV BL    			;20/10,al=2,ah=0
+    	MOV netPayInt[2],AL		;2
+    	MOV netPayInt[3],AH		;0
+	
+    	;DISPLAY NUMBER 4 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[2]		;2
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 5 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[3]		;0
+    	ADD DL,30H
+    	INT 21H
+    	
+	mov ah,02h
+     	mov dl,'.'
+     	int 21h
+	
+	mov ax,0
+	mov ax,0
+    	xor dx,dx
+	mov ax,netPayDecArr[si]
+	add totalPayrollsDec,ax
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
+	
+    	MOV AH,02H
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
+	ADD DL,30H
+	INT 21H
+	ret   
+	
+printOutTotalPayroll:         
+    	MOV AX,0  
+    	MOV AH,09H
+    	LEA DX,disTotalPay
+    	INT 21H
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0 
+	mov ax,totalPayrollsDec	;168
+	mov bx,1000
+	div bx			;ax=0001 dx=0068 
+	add totalPayrolls,ax
+	mov totalPayrollsDec,dx
+	MOV AX,0
+	MOV BX,0
+	MOV DX,0 
+	mov ax,totalPayrolls        ;ax=15520,3CA0H  
+    	mov bx,1000		
+    	div bx				;15520/1000: ax=15,dx=520
+    	mov bl,10
+    	div bl				;15/10: al=01,ah=05
+    	mov netPayInt[0],al		;al=01
+    	mov netPayInt[1],ah		;ah=05
+    	mov ax,dx			;ax=520
+    	mov dx,0
+    	mov bx,100
+    	div bx		;ax=5,dx=20
+    	mov netPayInt[2],dl		;ah=20
+    	mov netPayInt[3],dh		
+    	mov netPayInt[4],al		;al=05
+
+    	;DISPLAY NUMBER 1 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[0]		;1
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 2 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[1]		;5
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 3 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[4]		;6
+    	ADD DL,30H
+    	INT 21H
+
+    	MOV AX,0
+    	MOV AL,netPayInt[2]		;20
+    	mov bh,0
+    	mov bl,10
+    	DIV BL    			;20/10,al=2,ah=0
+    	MOV netPayInt[2],AL		;2
+    	MOV netPayInt[3],AH		;0
+	
+    	;DISPLAY NUMBER 4 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[2]		;2
+    	ADD DL,30H
+    	INT 21H
+
+    	;DISPLAY NUMBER 5 DIGIT
+    	MOV AH,02H
+    	MOV DL,netPayInt[3]		;0
+    	ADD DL,30H
+    	INT 21H
+    	
+	mov ah,02h
+     	mov dl,'.'
+     	int 21h
+	
+	mov ax,0
+	mov bx,0
+    	xor dx,dx
+	mov ax,totalPayrollsDec
+    	mov bx,1000
+    	div bx			;ax=1,dx=327
+    	mov netPayDec[0],al		;1
+   	mov ax,dx
+    	xor dx,dx
+    	mov bx,100
+    	div bx			;ax=3,dx=27
+    	mov netPayDec[1],al		;3
+    	mov ax,dx
+    	xor dx,dx
+    	mov bx,10
+    	div bx			;ax=2,dx,7
+    	mov netPayDec[2],al		;2
+    	mov netPayDec[3],dl		;7
+	
+    	MOV AH,02H
+    	MOV DL,netPayDec[1]	;DISPLAY NUMBER 1 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+     	MOV DL,netPayDec[2]	;DISPLAY NUMBER 2 DECIMAL DIGIT
+     	ADD DL,30H
+     	INT 21H
+	MOV DL,netPayDec[3]	;DISPLAY NUMBER 3 DECIMAL DIGIT
+	ADD DL,30H
+	INT 21H
+	ret
+    end main
