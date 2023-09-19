@@ -252,6 +252,7 @@ LOGINBACK1:
 	JMP LOGIN
 LOGINBACK2:
 	SUB countHTime,1
+	SUB countStaffId,6
 	JMP LOGINBACK1
 LOGIN:
     	mov loopCount[0],1
@@ -334,7 +335,9 @@ loginFailed:
     	int 21h
 	CALL NEWLINE
     	jmp PROMPTLOGIN
-STAFFBACK: 
+STAFFBACK1:
+	SUB countStaffId,6
+STAFFBACK2: 
 	CALL changeBLUE
 	MOV TOTALWH,0
 	MOV AX,countHTime
@@ -478,7 +481,7 @@ confirmStaffId:
    	JE  KeyInTotalWH	;YES - let user key in total working hours
     	CMP AL,NO
    	JNE ERRCONFIRMSI  	;IF NO - back to key in staff id
-   	JMP STAFFBACK
+   	JMP STAFFBACK2
 searchStaffId:
 	CALL CompareId
 	jmp confirmStaffId
@@ -1429,7 +1432,7 @@ loop loopWantedPlaces
     	jmp errMsg1		
     	ret	
 JL1: jmp LoginBack2			;JUMPER TO JUMP BACK THE MODULE 
-JL2: jmp STAFFBACK
+JL2: jmp STAFFBACK1
 JL3: jmp OT
 JL4: jmp grossPay
 JL5: jmp bonus
