@@ -252,7 +252,7 @@ LOGINBACK1:
 	JMP LOGIN
 LOGINBACK2:
 	SUB countHTime,1
-	SUB countStaffId,6
+	SUB countStaffId,7
 	JMP LOGINBACK1
 LOGIN:
     	mov loopCount[0],1
@@ -335,11 +335,10 @@ loginFailed:
     	int 21h
 	CALL NEWLINE
     	jmp PROMPTLOGIN
-STAFFBACK1:
-	SUB countStaffId,6
-STAFFBACK2: 
+STAFFBACK:
 	CALL changeBLUE
 	MOV TOTALWH,0
+	SUB countStaffId,7
 	MOV AX,countHTime
 	CMP AL,1
 	JE  REINITIAL
@@ -418,9 +417,8 @@ keyInId:
 readId:
 	mov di,0
 	lea di,staffId
-validate:	           
-    	;validate staff id      
-    	mov al,[di]
+validate:	                
+    	mov al,[di]		;validate staff id 
     	mov bl,[si] 
 	inc si
     	inc di
@@ -468,6 +466,7 @@ CHECKSTAFFID1:
 	JNE searchStaffId
 	JMP confirmStaffId
 confirmStaffId:
+	CALL storeStaffId
 	CALL BORDER
 	MOV AH,09H
 	LEA DX,confirmStaff
@@ -481,11 +480,10 @@ confirmStaffId:
    	JE  KeyInTotalWH	;YES - let user key in total working hours
     	CMP AL,NO
    	JNE ERRCONFIRMSI  	;IF NO - back to key in staff id
-   	JMP STAFFBACK2
+   	JMP STAFFBACK
 searchStaffId:
 	CALL CompareId
 	jmp confirmStaffId
-
 ERRCONFIRMSI:
 	MOV AH,09H
 	LEA DX,ERRYESNO
@@ -493,7 +491,6 @@ ERRCONFIRMSI:
 	JMP confirmStaffId
 
 KeyInTotalWH:
-	CALL storeStaffId
 	CALL changeBLUE
 BACKWH:	CALL NEWLINE
 	MOV AH,09H		;get total work hours
@@ -1167,7 +1164,6 @@ convertIntDecimal:
     	INT 21H
     	call convertDecDecimal
     	ret
-
 convertDecDecimal:
      	mov ah,02h
      	mov dl,'.'
@@ -1432,7 +1428,7 @@ loop loopWantedPlaces
     	jmp errMsg1		
     	ret	
 JL1: jmp LoginBack2			;JUMPER TO JUMP BACK THE MODULE 
-JL2: jmp STAFFBACK1
+JL2: jmp STAFFBACK
 JL3: jmp OT
 JL4: jmp grossPay
 JL5: jmp bonus
@@ -1786,6 +1782,7 @@ BONUSDECINPUT:			;GET DECIMAL PERCENTAGE OF THE BONUS RATE
 	RET
 ;----------------------------------------------
 storeStaffId:			;store the staff id that key in by user
+	mov BX,0
 	MOV BX,countStaffId 
 	MOV SI,0
 	MOV CX,6
@@ -1795,7 +1792,6 @@ putIN:
 	inc bx
 	inc si
    LOOP putIN
-	inc bx
 	MOV staffIDArr[BX],','
 	inc bx
 	MOV countStaffId,bx
@@ -1821,7 +1817,7 @@ noDUPLICATE:
 	JMP putId
 nextId:
 	MOV BX,0
-	cmp countCheckStaffId,5		;if id equal than countCheckStaffId = 5
+	cmp countCheckStaffId,6		;if id equal than countCheckStaffId = 5
 	JE  duplicateId
 	JMP oneMore
 oneMore:
